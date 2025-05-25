@@ -10,6 +10,7 @@ import { UserManagementService } from '../user-management/user-management.servic
 import { MessageLoggingModule } from '../message-logging/message-logging.module';
 import { KpiMonitoringModule } from '../kpi-monitoring/kpi-monitoring.module';
 import { UserSessionMiddleware } from '../../common/middlewares/user-session.middleware';
+import { AiProcessingModule } from '../ai-processing/ai-processing.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { UserSessionMiddleware } from '../../common/middlewares/user-session.mid
     UserManagementModule,
     MessageLoggingModule,
     KpiMonitoringModule,
+    AiProcessingModule,
   ],
   providers: [TelegramBaseService, TelegramBaseUpdate, UserSessionMiddleware],
   exports: [TelegramBaseService],

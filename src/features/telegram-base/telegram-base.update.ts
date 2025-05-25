@@ -32,6 +32,8 @@ import { MessageLoggingService } from '../message-logging/message-logging.servic
 import { MessageDirection } from '../message-logging/entities/message-log.entity';
 import { KpiDefinitionService } from '../kpi-monitoring/kpi-definition.service';
 import { CreateKpiDefinitionDto } from '../kpi-monitoring/dto/create-kpi-definition.dto';
+import { AiQueueService } from '../ai-processing/ai-queue.service';
+import { SttStatusEnum } from '../ai-processing/enums/stt-status.enum'; // Import qilindi
 
 interface TelegramError extends Error {
   message: string;
@@ -119,6 +121,7 @@ export class TelegramBaseUpdate {
     private readonly userManagementService: UserManagementService,
     private readonly messageLoggingService: MessageLoggingService,
     private readonly kpiDefinitionService: KpiDefinitionService, 
+    private readonly aiQueueService: AiQueueService, // Qo'shildi
   ) {
     this.logger.log('TelegramBaseUpdate instance created');
   }
@@ -553,6 +556,62 @@ export class TelegramBaseUpdate {
         err.stack,
       );
       // Decide if a reply to the user is needed for this kind of error
+    }
+  }
+
+  @On('voice')
+  async onVoice(
+    @Ctx() ctx: TelegrafContext,
+    @User() user: UserEntity,
+    @Chat() chat: TelegrafChat,
+  ): Promise<void> {
+    const message = ctx.message as TelegrafMessage.VoiceMessage;
+
+    if (!message || !message.voice) {
+      this.logger.warn('Voice message is undefined in onVoice');
+      return;
+    }
+
+    this.logger.log(
+      `Received voice message from TGID: ${user.telegramId} in chat ${chat.id}. Duration: ${message.voice.duration}s, File ID: ${message.voice.file_id}`,
+    );
+
+    const { userChatRole } = await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(user, chat);
+
+    if (userChatRole) {
+      const loggedMessage = await this.messageLoggingService.logMessage(
+        message, 
+        user, 
+        chat, 
+        MessageDirection.INCOMING, 
+        userChatRole.role, // Corrected 5th argument
+        { // Corrected 6th argument (additionalFields)
+          attachment_type: 'VOICE',
+          stt_status: SttStatusEnum.PENDING, // Enum ishlatildi
+        }
+      );
+
+      if (loggedMessage) {
+        this.logger.log(`Voice message (Log ID: ${loggedMessage.id}) logged with PENDING STT status.`);
+        try {
+          await this.aiQueueService.addSttJob({
+            audioFileId: message.voice.file_id,
+            messageLogId: loggedMessage.id,
+            chatId: chat.id,
+            telegramUserId: user.telegramId,
+          });
+        } catch (error) {
+          this.logger.error(`Failed to add STT job for messageLogId ${loggedMessage.id}: ${error.message}`, error.stack);
+          // Agar navbatga qo'shishda xatolik bo'lsa, message_log dagi stt_status ni 'FAILED' qilishimiz mumkin
+          await this.messageLoggingService.updateMessageLogSttStatus(loggedMessage.id, SttStatusEnum.FAILED_QUEUE); // Enum ishlatildi
+        }
+      } else {
+        this.logger.error('Failed to log voice message.');
+      }
+    } else {
+      this.logger.error(
+        `Failed to get or create user/role for TGID: ${user.telegramId} in chat ${chat.id} for voice message`,
+      );
     }
   }
 }

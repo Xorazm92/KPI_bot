@@ -21,7 +21,7 @@
               "userId": "708ef824-d907-41df-bd1b-7afed550ec8c",
               "chatId": "6368348552",
               "chatType": "private",
-              "role": "CLIENT",
+              "role": "AGENT",
               "chatTitle": null
             },
             {
@@ -70,7 +70,7 @@
               "userId": "5f4ef5d1-e922-4a2b-b3aa-0c01655f6545",
               "chatId": "8155488695",
               "chatType": "private",
-              "role": "CLIENT",
+              "role": "SUPERVISOR",
               "chatTitle": null
             }
           ]
@@ -136,6 +136,94 @@
               "createdAt": "2025-05-24T16:57:44.923Z",
               "updatedAt": "2025-05-24T16:57:44.923Z",
               "userId": "5f4ef5d1-e922-4a2b-b3aa-0c01655f6545",
+              "chatId": "-1002289630876",
+              "chatType": "supergroup",
+              "role": "CLIENT",
+              "chatTitle": null
+            },
+            {
+              "id": "184a2b3c-39b6-4bcb-86ae-8bbf0b2ca63a",
+              "createdAt": "2025-05-25T05:34:46.200Z",
+              "updatedAt": "2025-05-25T05:34:46.200Z",
+              "userId": "5f4ef5d1-e922-4a2b-b3aa-0c01655f6545",
+              "chatId": "8155488695",
+              "chatType": "private",
+              "role": "SUPERVISOR",
+              "chatTitle": null
+            }
+          ]
+        },
+        "__scenes": {}
+      }
+    },
+    {
+      "id": "75551182:75551182",
+      "data": {
+        "userEntity": {
+          "id": "9acc4f6c-b33b-4b87-b59e-1a1cf3e14bea",
+          "createdAt": "2025-05-24T13:00:15.552Z",
+          "updatedAt": "2025-05-24T13:00:15.552Z",
+          "telegramId": "75551182",
+          "username": "B_Zufar",
+          "firstName": "Zufar",
+          "lastName": null,
+          "isBot": false,
+          "languageCode": "en",
+          "chatRoles": [
+            {
+              "id": "84f014d9-84a1-46fd-95d3-3703baed6c1d",
+              "createdAt": "2025-05-24T13:00:15.869Z",
+              "updatedAt": "2025-05-24T13:00:15.869Z",
+              "userId": "9acc4f6c-b33b-4b87-b59e-1a1cf3e14bea",
+              "chatId": "75551182",
+              "chatType": "private",
+              "role": "ADMIN",
+              "chatTitle": null
+            },
+            {
+              "id": "45a2df25-97a0-4d19-981d-b7a8fa46bf56",
+              "createdAt": "2025-05-25T05:32:24.326Z",
+              "updatedAt": "2025-05-25T05:32:24.326Z",
+              "userId": "9acc4f6c-b33b-4b87-b59e-1a1cf3e14bea",
+              "chatId": "-1002289630876",
+              "chatType": "supergroup",
+              "role": "CLIENT",
+              "chatTitle": null
+            }
+          ]
+        },
+        "__scenes": {}
+      }
+    },
+    {
+      "id": "6368348552:6368348552",
+      "data": {
+        "userEntity": {
+          "id": "708ef824-d907-41df-bd1b-7afed550ec8c",
+          "createdAt": "2025-05-24T13:48:24.545Z",
+          "updatedAt": "2025-05-24T13:48:24.545Z",
+          "telegramId": "6368348552",
+          "username": "Zufar_Xorazmiy",
+          "firstName": "Zufarbek",
+          "lastName": "Bobojonov",
+          "isBot": false,
+          "languageCode": "en",
+          "chatRoles": [
+            {
+              "id": "90cc0b60-adae-41a2-bed7-dfb9d53b0b5a",
+              "createdAt": "2025-05-24T13:48:24.809Z",
+              "updatedAt": "2025-05-24T13:48:24.809Z",
+              "userId": "708ef824-d907-41df-bd1b-7afed550ec8c",
+              "chatId": "6368348552",
+              "chatType": "private",
+              "role": "AGENT",
+              "chatTitle": null
+            },
+            {
+              "id": "7cfaeca4-9638-42d6-bffd-439dba8518db",
+              "createdAt": "2025-05-24T16:57:24.889Z",
+              "updatedAt": "2025-05-24T16:57:24.889Z",
+              "userId": "708ef824-d907-41df-bd1b-7afed550ec8c",
               "chatId": "-1002289630876",
               "chatType": "supergroup",
               "role": "CLIENT",

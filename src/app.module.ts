@@ -16,11 +16,14 @@ import { KpiCalculationModule } from './features/kpi-calculation/kpi-calculation
 import { KpiViewModule } from './features/kpi-view/kpi-view.module';
 import { AuditLogModule } from './features/audit-log/audit-log.module';
 import { KpiMonitoringModule } from './features/kpi-monitoring/kpi-monitoring.module';
+import { ScheduleModule } from '@nestjs/schedule';
 import databaseConfig from './config/database.config';
 import telegramConfig from './config/telegram.config';
+import { AiProcessingModule } from './features/ai-processing/ai-processing.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [databaseConfig, telegramConfig],
@@ -43,8 +46,9 @@ import telegramConfig from './config/telegram.config';
     AiModule,
     KpiCalculationModule,
     KpiViewModule,
-    KpiMonitoringModule,
     AuditLogModule,
+    KpiMonitoringModule,
+    AiProcessingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
