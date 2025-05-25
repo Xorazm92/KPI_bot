@@ -1,0 +1,6 @@
+export enum KpiStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  ARCHIVED = 'ARCHIVED',
+  PENDING_APPROVAL = 'PENDING_APPROVAL',
+}
