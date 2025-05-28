@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual, LessThanOrEqual, In } from 'typeorm';
-import { MessageLogEntity, QuestionStatus } from '../message-logging/entities/message-log.entity';
+import { MessageLogEntity } from '../message-logging/entities/message-log.entity';
 import { UserEntity } from '../user-management/entities/user.entity';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { UserChatRoleEntity } from '../user-management/entities/user-chat-role.entity';
@@ -92,11 +92,12 @@ export class KpiViewService {
     });
 
     const totalQuestions = questions.length;
-    const totalAnswered = questions.filter(q => q.questionStatus === QuestionStatus.ANSWERED).length;
-    const totalPending = questions.filter(q => q.questionStatus === QuestionStatus.PENDING).length;
-    const totalTimedOut = questions.filter(q => q.questionStatus === QuestionStatus.TIMED_OUT).length;
+    // Temporarily use string literals until QuestionStatus enum is properly defined and used
+    const answeredQuestions = questions.filter(q => q.questionStatusTemp === 'ANSWERED' && q.responseTimeSeconds != null);
+    const totalAnswered = answeredQuestions.length;
+    const totalPending = questions.filter(q => q.questionStatusTemp === 'PENDING').length;
+    const totalTimedOut = questions.filter(q => q.questionStatusTemp === 'TIMED_OUT').length;
 
-    const answeredQuestions = questions.filter(q => q.questionStatus === QuestionStatus.ANSWERED && q.responseTimeSeconds != null);
     const overallAverageResponseTimeSeconds = answeredQuestions.length > 0
       ? answeredQuestions.reduce((sum, q) => sum + (q.responseTimeSeconds || 0), 0) / answeredQuestions.length
       : undefined;
@@ -146,13 +147,11 @@ export class KpiViewService {
 
     for (const agent of agents) {
       const agentAnsweredQuestions = questions.filter(
-        q => q.answeredByUser && q.answeredByUser.id === agent.id && q.questionStatus === QuestionStatus.ANSWERED
+        q => q.answeredByUser && q.answeredByUser.id === agent.id && q.questionStatusTemp === 'ANSWERED'
       );
       const agentTimedOutQuestions = questions.filter(
-        q => q.user.id === agent.id && q.questionStatus === QuestionStatus.TIMED_OUT
-      ); // Bu yerda logikani aniqlashtirish kerak: agentga biriktirilgan va timeout bo'lganlarmi yoki agentning o'zi yozgan savol timeout bo'lganmi?
-         // Hozircha, agent tomonidan javob berilmagan va unga tegishli (user.id orqali) savollar deb olamiz.
-         // Yaxshiroq yechim: `assignedToAgentId` degan maydon bo'lishi kerak `MessageLogEntity`da.
+        q => q.user.id === agent.id && q.questionStatusTemp === 'TIMED_OUT' // Assuming TIMED_OUT means agent missed it
+      ).length;
 
       const avgResponseTime = agentAnsweredQuestions.length > 0
         ? agentAnsweredQuestions.reduce((sum, q) => sum + (q.responseTimeSeconds || 0), 0) / agentAnsweredQuestions.length
@@ -164,7 +163,7 @@ export class KpiViewService {
         totalQuestionsAssigned: 0, // Hozircha bu funksionallik yo'q
         totalQuestionsAnswered: agentAnsweredQuestions.length,
         averageResponseTimeSeconds: avgResponseTime ? parseFloat(avgResponseTime.toFixed(2)) : undefined,
-        totalTimedOutQuestions: agentTimedOutQuestions.length, // Bu ham aniqlashtirilishi kerak
+        totalTimedOutQuestions: agentTimedOutQuestions, // Bu ham aniqlashtirilishi kerak
       });
     }
 

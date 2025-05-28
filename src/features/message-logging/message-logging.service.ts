@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { MessageLogEntity, MessageDirection, QuestionStatus } from './entities/message-log.entity';
-import { UserEntity } from '../user-management/entities/user.entity';
-import { Chat as TelegrafChat, Message as TelegrafMessage } from 'telegraf/types';
+import { Message as TelegrafMessage, Chat as TelegrafChat } from 'telegraf/typings/core/types/typegram';
 import { ConfigService } from '@nestjs/config';
+import { MessageLogEntity, MessageDirection } from './entities/message-log.entity';
+import { UserEntity } from '../user-management/entities/user.entity';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { SttStatusEnum } from '../ai-processing/enums/stt-status.enum';
 import { LlmAnalysisStatusEnum } from '../ai-processing/enums/llm-analysis-status.enum';
@@ -21,64 +21,88 @@ export class MessageLoggingService {
 
   async logMessage(
     telegramMessage: TelegrafMessage,
-    user: UserEntity,
+    user: UserEntity | null,
     chat: TelegrafChat,
     direction: MessageDirection,
-    senderRoleAtMoment: UserRole,
-    additionalFields?: Partial<MessageLogEntity>
-  ): Promise<MessageLogEntity> {
-    let messageText: string | undefined;
+    senderRole: UserRole | null,
+    explicitTextContent?: string,
+    isQuestionOverride?: boolean,
+    attachmentType?: string,
+  ): Promise<MessageLogEntity | null> {
+    if (!telegramMessage || !telegramMessage.message_id) {
+      this.logger.warn('logMessage called with null, undefined telegramMessage object, or message without ID. Skipping.');
+      return null;
+    }
+
+    let messageText: string | null = explicitTextContent !== undefined ? explicitTextContent : null;
+    let fileId: string | null = null;
+    let fileUniqueId: string | null = null;
+    let duration: number | null = null;
+
     if ('text' in telegramMessage) {
       messageText = telegramMessage.text;
-    } else if ('caption' in telegramMessage) {
+    }
+    if ('voice' in telegramMessage && telegramMessage.voice) {
+      fileId = telegramMessage.voice.file_id;
+      fileUniqueId = telegramMessage.voice.file_unique_id;
+      duration = telegramMessage.voice.duration;
+      if (attachmentType === undefined) {
+        attachmentType = 'VOICE';
+      }
+    } else if ('audio' in telegramMessage && telegramMessage.audio) {
+      fileId = telegramMessage.audio.file_id;
+      fileUniqueId = telegramMessage.audio.file_unique_id;
+      duration = telegramMessage.audio.duration;
+      if (attachmentType === undefined) {
+        attachmentType = 'AUDIO';
+      }
+    } else if ('document' in telegramMessage && telegramMessage.document) {
+      fileId = telegramMessage.document.file_id;
+      fileUniqueId = telegramMessage.document.file_unique_id;
+      if (attachmentType === undefined) {
+        attachmentType = 'DOCUMENT';
+      }
+    }
+    if ('caption' in telegramMessage && telegramMessage.caption && !messageText) {
       messageText = telegramMessage.caption;
     }
 
-    let isQuestion = false;
-    let questionStatusToSet: QuestionStatus | null = null;
+    const sttStatus = attachmentType === 'VOICE' && fileId ? SttStatusEnum.PENDING : SttStatusEnum.NOT_APPLICABLE;
 
-    if (direction === MessageDirection.INCOMING && senderRoleAtMoment === UserRole.CLIENT && messageText) {
-      const lowerCaseText = messageText.toLowerCase();
-      const questionKeywords = [
-        'qachon', 'қандай', 'нима учун', 'kim', 'qayerda', 
-        'savol', 'help', 
-        'nima', 'nega', 'qanaqa', 'qanday qilib', 
-        'почему', 'когда', 'как', 'где', 'кто', 'что', 'сколько' 
-      ];
-
-      if (messageText.endsWith('?') || questionKeywords.some(keyword => lowerCaseText.includes(keyword))) {
-        isQuestion = true;
-        questionStatusToSet = QuestionStatus.PENDING;
-      }
-    }
-
-    const newMessageLog = this.messageLogRepository.create({
+    const messageLogData: Partial<MessageLogEntity> = {
       telegramMessageId: telegramMessage.message_id,
-      user,
+      user: user === null ? undefined : user,
+      senderRoleAtMoment: senderRole === null ? undefined : senderRole,
       chatId: chat.id,
-      text: messageText,
-      direction,
+      text: messageText === null ? undefined : messageText,
+      direction: direction,
       timestamp: new Date(telegramMessage.date * 1000),
       rawMessage: telegramMessage,
-      senderRoleAtMoment,
-      isQuestion,
-      questionStatus: isQuestion ? QuestionStatus.PENDING : undefined,
-      stt_status: SttStatusEnum.PENDING, 
-      ...additionalFields,
-    });
+      attachmentType: attachmentType || null,
+      attachmentFileId: fileId,
+      attachmentFileUniqueId: fileUniqueId,
+      attachmentDurationSeconds: duration,
+      sttStatus: sttStatus,
+      llmAnalysisStatus: LlmAnalysisStatusEnum.NOT_APPLICABLE,
+      isQuestion: isQuestionOverride !== undefined ? isQuestionOverride : false,
+      questionStatusTemp: 'NONE',
+    };
+
+    const messageLog = new MessageLogEntity(messageLogData);
 
     try {
-      const savedMessageLog: MessageLogEntity = await this.messageLogRepository.save(newMessageLog);
+      const savedMessageLog = await this.messageLogRepository.save(messageLog);
       this.logger.log(
-        `Logged ${direction} message from user ${user.telegramId} (Role: ${senderRoleAtMoment}) in chat ${chat.id}. Text: "${messageText ? (messageText.length > 50 ? messageText.substring(0, 50) + '...' : messageText) : '[no text]'}". Question: ${isQuestion}, Status: ${savedMessageLog.questionStatus}`,
+        `Logged ${direction} message from user ${user?.telegramId || 'bot'} (Role: ${senderRole || 'N/A'}) in chat ${chat.id}. Text: "${messageText ? (messageText.length > 50 ? messageText.substring(0, 50) + '...' : messageText) : (attachmentType ? '['+attachmentType+']' : '[no text/media]')}". DB ID: ${savedMessageLog.id}. IsQ: ${savedMessageLog.isQuestion}`,
       );
+
       return savedMessageLog;
     } catch (error) {
       this.logger.error(
-        `Failed to save message log for message ID ${telegramMessage.message_id} from user ${user.telegramId} in chat ${chat.id}: ${error.message}`,
+        `Error logging message from user ${user?.telegramId || 'bot'} in chat ${chat.id} (TG MSG ID: ${telegramMessage.message_id}): ${error.message}`,
         error.stack,
       );
-      throw error;
+      return null;
     }
   }
 
@@ -89,7 +113,7 @@ export class MessageLoggingService {
         this.logger.warn(`MessageLogEntity not found with ID: ${messageLogId} for STT status update.`);
         return null;
       }
-      messageLog.stt_status = newStatus;
+      messageLog.sttStatus = newStatus;
       const updatedLog = await this.messageLogRepository.save(messageLog);
       this.logger.log(`Updated STT status to '${newStatus}' for MessageLog ID: ${messageLogId}`);
       return updatedLog;
@@ -106,11 +130,11 @@ export class MessageLoggingService {
         this.logger.warn(`MessageLogEntity not found with ID: ${messageLogId} for transcription update.`);
         return null;
       }
-      messageLog.transcribed_text = transcribedText;
-      if (messageLog.attachment_type === 'VOICE' && !messageLog.text) {
-        messageLog.text = transcribedText; 
+      messageLog.transcribedText = transcribedText;
+      if (messageLog.attachmentType === 'VOICE' && !messageLog.text) {
+        messageLog.text = transcribedText;
       }
-      messageLog.stt_status = SttStatusEnum.COMPLETED; 
+      messageLog.sttStatus = SttStatusEnum.COMPLETED;
       const updatedLog = await this.messageLogRepository.save(messageLog);
       this.logger.log(`Updated MessageLog ID: ${messageLogId} with transcription and STT status COMPLETED.`);
       return updatedLog;
@@ -127,7 +151,7 @@ export class MessageLoggingService {
         this.logger.warn(`MessageLogEntity not found with ID: ${messageLogId} for LLM status update.`);
         return null;
       }
-      messageLog.llm_analysis_status = newStatus;
+      messageLog.llmAnalysisStatus = newStatus;
       const updatedLog = await this.messageLogRepository.save(messageLog);
       this.logger.log(`Updated LLM analysis status to '${newStatus}' for MessageLog ID: ${messageLogId}`);
       return updatedLog;
@@ -138,10 +162,10 @@ export class MessageLoggingService {
   }
 
   async updateMessageLogWithLlmResult(
-    messageLogId: string, 
+    messageLogId: string,
     promptType: string,
-    prompt: string, 
-    rawResponse: string, 
+    prompt: string,
+    rawResponse: string,
     structuredResponse?: any
   ): Promise<MessageLogEntity | null> {
     try {
@@ -150,13 +174,13 @@ export class MessageLoggingService {
         this.logger.warn(`MessageLogEntity not found with ID: ${messageLogId} for LLM result update.`);
         return null;
       }
-      messageLog.llm_prompt_type = promptType;
-      messageLog.llm_analysis_prompt = prompt;
-      messageLog.llm_analysis_response = rawResponse;
+      messageLog.llmPromptType = promptType;
+      messageLog.llmAnalysisPrompt = prompt;
+      messageLog.llmAnalysisResponse = rawResponse;
       if (structuredResponse) {
-        messageLog.llm_structured_response = structuredResponse;
+        messageLog.llmStructuredResponse = structuredResponse;
       }
-      messageLog.llm_analysis_status = LlmAnalysisStatusEnum.COMPLETED;
+      messageLog.llmAnalysisStatus = LlmAnalysisStatusEnum.COMPLETED;
       const updatedLog = await this.messageLogRepository.save(messageLog);
       this.logger.log(`Updated MessageLog ID: ${messageLogId} with LLM analysis result (type: ${promptType}), status COMPLETED.`);
       return updatedLog;
@@ -173,8 +197,8 @@ export class MessageLoggingService {
     try {
       const messageLog = await this.messageLogRepository.findOne({
         where: {
-          telegramMessageId,
-          chatId,
+          telegramMessageId: telegramMessageId,
+          chatId: chatId,
         },
       });
       return messageLog;

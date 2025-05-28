@@ -584,11 +584,10 @@ export class TelegramBaseUpdate {
         user, 
         chat, 
         MessageDirection.INCOMING, 
-        userChatRole.role, // Corrected 5th argument
-        { // Corrected 6th argument (additionalFields)
-          attachment_type: 'VOICE',
-          stt_status: SttStatusEnum.PENDING, // Enum ishlatildi
-        }
+        userChatRole.role,
+        undefined, // explicitTextContent - voice messages usually don't have it initially
+        false, // isQuestionOverride
+        'VOICE' // attachmentType
       );
 
       if (loggedMessage) {

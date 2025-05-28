@@ -1,15 +1,17 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { MessageLoggingService } from './message-logging.service';
 import { MessageLogEntity } from './entities/message-log.entity';
+import { MessageLoggingService } from './message-logging.service';
+import { UserManagementModule } from '../user-management/user-management.module';
 import { ResponseTimeModule } from '../response-time/response-time.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([MessageLogEntity]),
-    ResponseTimeModule,
+    forwardRef(() => UserManagementModule),
+    // forwardRef(() => ResponseTimeModule), // Temporarily removed
   ],
   providers: [MessageLoggingService],
-  exports: [MessageLoggingService],
+  exports: [MessageLoggingService, TypeOrmModule],
 })
 export class MessageLoggingModule {}

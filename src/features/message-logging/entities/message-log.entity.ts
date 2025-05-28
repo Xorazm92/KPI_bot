@@ -6,19 +6,9 @@ import { LlmAnalysisStatusEnum } from '../../ai-processing/enums/llm-analysis-st
 
 export { UserRole }; // Re-export UserRole
 
-// Vaqtincha shu yerda, agar alohida fayl yaratishda muammo bo'lsa
 export enum MessageDirection {
   INCOMING = 'INCOMING',
   OUTGOING = 'OUTGOING',
-}
-
-export enum QuestionStatus {
-  PENDING = 'PENDING',     // Javob kutilmoqda
-  ANSWERED = 'ANSWERED',   // Javob berildi
-  CLOSED = 'CLOSED',     // Savol yopildi (masalan, foydalanuvchi tomonidan)
-  TIMED_OUT = 'TIMED_OUT', // Javob berish vaqti tugadi
-  TIMEOUT_CLIENT = 'TIMEOUT_CLIENT', 
-  TIMEOUT_AGENT = 'TIMEOUT_AGENT',   
 }
 
 export enum AnswerDetectionMethod {
@@ -50,8 +40,9 @@ export class MessageLogEntity {
   @Column({
     type: 'enum',
     enum: MessageDirection,
+    nullable: true, 
   })
-  direction: MessageDirection;
+  direction?: MessageDirection;
 
   @CreateDateColumn()
   timestamp: Date;
@@ -69,12 +60,8 @@ export class MessageLogEntity {
   @Column({ type: 'boolean', default: false })
   isQuestion: boolean;
 
-  @Column({
-    type: 'enum',
-    enum: QuestionStatus,
-    nullable: true,
-  })
-  questionStatus?: QuestionStatus;
+  @Column({ type: 'varchar', length: 20, nullable: true }) // Placeholder for question_status
+  questionStatusTemp: string;
 
   @Column({ type: 'bigint', nullable: true })
   answeredByMessageId?: number;
@@ -93,37 +80,48 @@ export class MessageLogEntity {
   answerDetectionMethod?: AnswerDetectionMethod;
 
   @Column({ type: 'text', nullable: true })
-  transcribed_text: string | null; // STT natijasida olingan matn
+  transcribedText: string | null; // STT natijasida olingan matn
 
   @Column({ type: 'varchar', length: 50, nullable: true })
-  attachment_type: string | null; // Xabardagi fayl turi (VOICE, AUDIO, DOCUMENT, etc.)
+  attachmentType: string | null; // Xabardagi fayl turi (VOICE, AUDIO, DOCUMENT, etc.)
+
+  @Column({ type: 'varchar', length: 255, nullable: true }) // Increased length for file_id
+  attachmentFileId: string | null; // Faylning Telegramdagi file_id si
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  attachmentFileUniqueId: string | null; // Faylning Telegramdagi file_unique_id si
+
+  @Column({ type: 'integer', nullable: true })
+  attachmentDurationSeconds: number | null; // Ovozli/video xabar davomiyligi (sekundlarda)
 
   @Column({
     type: 'enum',
     enum: SttStatusEnum,
+    default: SttStatusEnum.NOT_APPLICABLE,
     nullable: true,
   })
-  stt_status: SttStatusEnum | null; // STT jarayonining statusi
+  sttStatus: SttStatusEnum | null; // STT jarayonining statusi
 
   // LLM Analysis Fields
   @Column({
     type: 'enum',
     enum: LlmAnalysisStatusEnum,
+    default: LlmAnalysisStatusEnum.NOT_APPLICABLE,
     nullable: true,
   })
-  llm_analysis_status: LlmAnalysisStatusEnum | null;
+  llmAnalysisStatus: LlmAnalysisStatusEnum | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
-  llm_prompt_type: string | null; // Masalan, 'RESPONSE_QUALITY', 'SENTIMENT_ANALYSIS'
+  llmPromptType: string | null; // Masalan, 'RESPONSE_QUALITY', 'SENTIMENT_ANALYSIS'
 
   @Column({ type: 'text', nullable: true })
-  llm_analysis_prompt: string | null; // LLM ga yuborilgan to'liq prompt
+  llmAnalysisPrompt: string | null; // LLM ga yuborilgan to'liq prompt
 
   @Column({ type: 'text', nullable: true })
-  llm_analysis_response: string | null; // LLM dan kelgan xom javob
+  llmAnalysisResponse: string | null; // LLM dan kelgan xom javob
 
   @Column({ type: 'jsonb', nullable: true })
-  llm_structured_response: any | null; // LLM javobidan ajratib olingan tuzilmali ma'lumot
+  llmStructuredResponse: any | null; // LLM javobidan ajratib olingan tuzilmali ma'lumot
 
   constructor(partial: Partial<MessageLogEntity>) {
     Object.assign(this, partial);

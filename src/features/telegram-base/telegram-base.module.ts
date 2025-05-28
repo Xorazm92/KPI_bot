@@ -11,12 +11,19 @@ import { MessageLoggingModule } from '../message-logging/message-logging.module'
 import { KpiMonitoringModule } from '../kpi-monitoring/kpi-monitoring.module';
 import { UserSessionMiddleware } from '../../common/middlewares/user-session.middleware';
 import { AiProcessingModule } from '../ai-processing/ai-processing.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserSessionEntity } from '../user-management/entities/user-session.entity';
 
 @Module({
   imports: [
     ConfigModule,
     TelegrafModule.forRootAsync({
-      imports: [ConfigModule, UserManagementModule],
+      imports: [
+        ConfigModule,
+        forwardRef(() => UserManagementModule),
+        forwardRef(() => TelegramBaseModule),
+      ],
+      inject: [ConfigService, UserManagementService],
       useFactory: async (configService: ConfigService, userManagementService: UserManagementService) => {
         const logger = new Logger('TelegramBaseModuleFactory');
         const token = configService.get<string>('telegram.botToken');
@@ -65,10 +72,10 @@ import { AiProcessingModule } from '../ai-processing/ai-processing.module';
 
         return telegrafModuleOptions;
       },
-      inject: [ConfigService, UserManagementService],
     }),
-    UserManagementModule,
-    MessageLoggingModule,
+    TypeOrmModule.forFeature([UserSessionEntity]),
+    forwardRef(() => UserManagementModule),
+    forwardRef(() => MessageLoggingModule),
     KpiMonitoringModule,
     AiProcessingModule,
   ],

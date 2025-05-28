@@ -92,7 +92,7 @@ export class SttProcessor {
 
       // 4. Natijani MessageLogEntity ga saqlash
       const updatedLog = await this.messageLoggingService.updateMessageLogWithTranscription(messageLogId, transcription);
-      if (updatedLog && updatedLog.stt_status === SttStatusEnum.COMPLETED) {
+      if (updatedLog && updatedLog.sttStatus === SttStatusEnum.COMPLETED) {
         this.logger.log(`[STT Job ${job.id}] STT result saved for messageLogId: ${messageLogId}. Adding LLM analysis job.`);
         // STT muvaffaqiyatli yakunlandi, LLM tahlilini ishga tushiramiz
         await this.aiQueueService.addLlmAnalysisJob({

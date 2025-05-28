@@ -11,4 +11,5 @@ export enum SttStatusEnum {
   FAILED_UNKNOWN = 'FAILED_UNKNOWN', // Boshqa noma'lum xatolik
   FAILED_STT_NO_RESPONSE = 'FAILED_STT_NO_RESPONSE', // STT xizmatidan javob kelmadi (timeout yoki ulanish muammosi)
   FAILED_NO_FILE_LINK = 'FAILED_NO_FILE_LINK', // Telegramdan fayl havolasini olishda xatolik
+  NOT_APPLICABLE = 'NOT_APPLICABLE' // Bu xabar uchun STT kerak emas
 }

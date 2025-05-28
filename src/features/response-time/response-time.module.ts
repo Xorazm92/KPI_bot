@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ResponseTimeTrackingService } from './response-time.service';
+import { ResponseTimeService } from './response-time.service';
 import { MessageLogEntity } from '../message-logging/entities/message-log.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([MessageLogEntity])],
-  providers: [ResponseTimeTrackingService],
-  exports: [ResponseTimeTrackingService],
+  providers: [ResponseTimeService],
+  exports: [ResponseTimeService],
 })
 export class ResponseTimeModule {}
