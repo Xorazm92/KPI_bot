@@ -502,62 +502,62 @@ export class TelegramBaseUpdate {
     }
   }
 
-  @On('message')
-  @UseGuards(AuthenticatedGuard)
-  async onMessage(
-    @Ctx() ctx: TelegrafContext,
-    @User() user: UserEntity, 
-  ): Promise<void> {
-    const message = ctx.message as TelegrafMessage; // Type assertion
-    const sender = ctx.from; // Bu Telegraf User
-    const chat = ctx.chat;
+  // @On('message')
+  // @UseGuards(AuthenticatedGuard)
+  // async onMessage(
+  //   @Ctx() ctx: TelegrafContext,
+  //   @User() user: UserEntity, 
+  // ): Promise<void> {
+  //   const message = ctx.message as TelegrafMessage; // Type assertion
+  //   const sender = ctx.from; // Bu Telegraf User
+  //   const chat = ctx.chat;
 
-    if (!sender || !chat || !message) {
-      this.logger.warn('Sender, chat or message is undefined in onMessage');
-      return;
-    }
+  //   if (!sender || !chat || !message) {
+  //     this.logger.warn('Sender, chat or message is undefined in onMessage');
+  //     return;
+  //   }
 
-    // Ensure user and their role in this chat are known first
-    try {
-      const { userChatRole, isNewUser, isNewChatRole } = await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(user, chat);
+  //   // Ensure user and their role in this chat are known first
+  //   try {
+  //     const { userChatRole, isNewUser, isNewChatRole } = await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(user, chat);
       
-      if (isNewUser) {
-        this.logger.log(`New user ${user.telegramId} processed in onMessage.`);
-      }
-      if (isNewChatRole) {
-        this.logger.log(`New chat role ${userChatRole.role} assigned to user ${user.telegramId} in chat ${chat.id}.`);
-      }
+  //     if (isNewUser) {
+  //       this.logger.log(`New user ${user.telegramId} processed in onMessage.`);
+  //     }
+  //     if (isNewChatRole) {
+  //       this.logger.log(`New chat role ${userChatRole.role} assigned to user ${user.telegramId} in chat ${chat.id}.`);
+  //     }
 
-      // Log the incoming message to the database
-      await this.messageLoggingService.logMessage(
-        message, 
-        user,    
-        chat,    
-        MessageDirection.INCOMING,
-        userChatRole.role, // Added senderRoleAtMoment
-      );
+  //     // Log the incoming message to the database
+  //     await this.messageLoggingService.logMessage(
+  //       message, 
+  //       user,    
+  //       chat,    
+  //       MessageDirection.INCOMING,
+  //       userChatRole.role, // Added senderRoleAtMoment
+  //     );
 
-      // Original console logging (can be kept or removed)
-      if ('text' in message) {
-        this.logger.log(
-          `[DB Logged] Received text message from ${sender.id} in chat ${chat.id}: ${message.text}`,
-        );
-      } else {
-        const messageType = Object.keys(message).find(key => !['message_id', 'date', 'chat', 'from', 'reply_to_message'].includes(key));
-        this.logger.log(
-          `[DB Logged] Received ${messageType || 'unknown type'} message from ${sender.id} in chat ${chat.id}`
-        );
-      }
+  //     // Original console logging (can be kept or removed)
+  //     if ('text' in message) {
+  //       this.logger.log(
+  //         `[DB Logged] Received text message from ${sender.id} in chat ${chat.id}: ${message.text}`,
+  //       );
+  //     } else {
+  //       const messageType = Object.keys(message).find(key => !['message_id', 'date', 'chat', 'from', 'reply_to_message'].includes(key));
+  //       this.logger.log(
+  //         `[DB Logged] Received ${messageType || 'unknown type'} message from ${sender.id} in chat ${chat.id}`
+  //       );
+  //     }
 
-    } catch (error) {
-      const err = error as TelegramError;
-      this.logger.error(
-        `Error in onMessage for user ${user.telegramId} in chat ${chat.id}: ${err.message}`,
-        err.stack,
-      );
-      // Decide if a reply to the user is needed for this kind of error
-    }
-  }
+  //   } catch (error) {
+  //     const err = error as TelegramError;
+  //     this.logger.error(
+  //       `Error in onMessage for user ${user.telegramId} in chat ${chat.id}: ${err.message}`,
+  //       err.stack,
+  //     );
+  //     // Decide if a reply to the user is needed for this kind of error
+  //   }
+  // }
 
   @On('voice')
   async onVoice(

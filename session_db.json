@@ -233,6 +233,35 @@
         },
         "__scenes": {}
       }
+    },
+    {
+      "id": "7764932576:7764932576",
+      "data": {
+        "userEntity": {
+          "id": "e786cf35-9a7a-481e-858f-159222f8202a",
+          "createdAt": "2025-05-28T07:05:17.450Z",
+          "updatedAt": "2025-05-28T07:05:17.450Z",
+          "telegramId": "7764932576",
+          "username": null,
+          "firstName": "Team",
+          "lastName": null,
+          "isBot": false,
+          "languageCode": null,
+          "chatRoles": [
+            {
+              "id": "556e81e9-5637-41f6-8a3c-4430eed55e46",
+              "createdAt": "2025-05-28T07:05:17.467Z",
+              "updatedAt": "2025-05-28T07:05:17.467Z",
+              "userId": "e786cf35-9a7a-481e-858f-159222f8202a",
+              "chatId": "7764932576",
+              "chatType": "private",
+              "role": "SUPERVISOR",
+              "chatTitle": null
+            }
+          ]
+        },
+        "__scenes": {}
+      }
     }
   ]
 }

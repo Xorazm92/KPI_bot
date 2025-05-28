@@ -49,6 +49,9 @@ export class KpiViewUpdate {
 
   @Command('kpi_report')
   async onKpiReportCommand(@Ctx() ctx: Context, @Message('text') messageText: string): Promise<void> {
+    this.logger.log(
+      `<<<<< KPI_REPORT COMMAND HANDLER TRIGGERED by user ${ctx.from?.id} in chat ${ctx.chat?.id} >>>>>`,
+    );
     const telegramUser = ctx.from;
     const chat = ctx.chat;
 
@@ -86,20 +89,33 @@ export class KpiViewUpdate {
     else if (periodArg === 'last7days') periodDisplay = 'Oxirgi 7 kun';
     else if (periodArg === 'last30days') periodDisplay = 'Oxirgi 30 kun';
 
-    this.logger.log(`Supervisor ${userEntity.telegramId} (Role: ${userChatRole.role}) requested KPI report for period: ${periodArg} in chat ${chat.id}`);
-
     try {
       const report = await this.kpiViewService.getGeneralKpiReport(periodArg);
-      const formattedMessage = this.formatReport(report, periodDisplay);
-      await ctx.replyWithMarkdown(formattedMessage);
-    } catch (error: any) {
-      this.logger.error(`Error generating KPI report for supervisor ${userEntity.telegramId}: ${error.message}`, error.stack);
-      await ctx.reply('Hisobotni yaratishda xatolik yuz berdi.');
+      const message = this.formatReport(report, periodDisplay);
+
+      // Escape parentheses for MarkdownV2, as they are causing "can't parse entities" errors.
+      // A more robust solution would involve escaping all special MarkdownV2 characters
+      // within the formatReport method itself, specifically for dynamic text parts.
+      const escapedMessage = message.replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+
+      await ctx.replyWithMarkdownV2(escapedMessage);
+      // this.logger.log(`Supervisor ${userEntity.telegramId} (Role: ${userChatRole.role}) requested KPI report for period: ${periodArg} in chat ${chat.id}`);
+    } catch (error) {
+      this.logger.error('KPI hisobotini olishda xatolik:', error);
+      // Provide more specific error feedback if available
+      if (error.response && error.response.description) {
+        await ctx.reply(`KPI hisobotini olishda xatolik yuz berdi: ${error.response.description}`);
+      } else {
+        await ctx.reply('KPI hisobotini olishda xatolik yuz berdi. Tafsilotlar uchun loglarni tekshiring.');
+      }
     }
   }
 
   @Command('kpi')
   async onKpiCommand(@Ctx() ctx: Context, @Message('text') messageText: string) {
+    this.logger.log(
+      `<<<<< KPI COMMAND HANDLER TRIGGERED by user ${ctx.from?.id} in chat ${ctx.chat?.id} >>>>>`,
+    );
     const telegramUser = ctx.from;
     const chat = ctx.chat;
 
