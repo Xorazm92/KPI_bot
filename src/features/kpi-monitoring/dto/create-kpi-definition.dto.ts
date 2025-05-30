@@ -1,4 +1,14 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsDateString, IsNumber, MinLength, MaxLength, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsEnum,
+  IsDateString,
+  IsNumber,
+  MinLength,
+  MaxLength,
+  IsObject,
+} from 'class-validator';
 import { KpiFrequency } from '../enums/kpi-frequency.enum';
 import { KpiStatus } from '../enums/kpi-status.enum';
 

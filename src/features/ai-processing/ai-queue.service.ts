@@ -10,19 +10,20 @@ export class AiQueueService {
 
   constructor(
     @InjectQueue('stt-queue') private readonly sttQueue: Queue<SttJobData>,
-    @InjectQueue('llm-analysis-queue') private readonly llmAnalysisQueue: Queue<LlmJobData>,
+    @InjectQueue('llm-analysis-queue')
+    private readonly llmAnalysisQueue: Queue<LlmJobData>,
   ) {}
 
   async addSttJob(data: SttJobData): Promise<void> {
     try {
       const job = await this.sttQueue.add('transcribe-audio', data, {
-        attempts: 3, 
+        attempts: 3,
         backoff: {
           type: 'exponential',
-          delay: 5000, 
+          delay: 5000,
         },
         removeOnComplete: true,
-        removeOnFail: 50, 
+        removeOnFail: 50,
       });
       this.logger.log(
         `Added STT job ${job.id} for messageLogId: ${data.messageLogId}`,
@@ -39,10 +40,10 @@ export class AiQueueService {
   async addLlmAnalysisJob(data: LlmJobData): Promise<void> {
     try {
       const job = await this.llmAnalysisQueue.add('analyze-text', data, {
-        attempts: 2, 
+        attempts: 2,
         backoff: {
           type: 'exponential',
-          delay: 10000, 
+          delay: 10000,
         },
         removeOnComplete: true,
         removeOnFail: 50,

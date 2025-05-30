@@ -19,17 +19,28 @@ export class LlmProcessor {
     private readonly configService: ConfigService,
     private readonly messageLoggingService: MessageLoggingService,
   ) {
-    this.ollamaBaseUrl = this.configService.get<string>('OLLAMA_BASE_URL', 'http://localhost:11434');
+    this.ollamaBaseUrl = this.configService.get<string>(
+      'OLLAMA_BASE_URL',
+      'http://localhost:11434',
+    );
     // .env faylida OLLAMA_QWEN_MODEL ni sozlash tavsiya etiladi
-    this.ollamaModel = this.configService.get<string>('OLLAMA_QWEN_MODEL', 'qwen:latest'); 
+    this.ollamaModel = this.configService.get<string>(
+      'OLLAMA_QWEN_MODEL',
+      'qwen:latest',
+    );
   }
 
   @Process('analyze-text') // Vazifa nomi
   async handleAnalyzeText(job: Job<LlmJobData>): Promise<void> {
     const { messageLogId, textToAnalyze, promptType } = job.data;
-    this.logger.log(`[LLM Job ${job.id}] Processing messageLogId: ${messageLogId}, promptType: ${promptType}`);
+    this.logger.log(
+      `[LLM Job ${job.id}] Processing messageLogId: ${messageLogId}, promptType: ${promptType}`,
+    );
 
-    await this.messageLoggingService.updateMessageLogLlmStatus(messageLogId, LlmAnalysisStatusEnum.PROCESSING);
+    await this.messageLoggingService.updateMessageLogLlmStatus(
+      messageLogId,
+      LlmAnalysisStatusEnum.PROCESSING,
+    );
 
     // TODO: Promptni promptType ga qarab dinamik generatsiya qilish kerak
     // Hozircha oddiy prompt ishlatamiz
@@ -43,30 +54,45 @@ export class LlmProcessor {
         stream: false, // Javobni to'liq olish uchun
       };
 
-      this.logger.debug(`[LLM Job ${job.id}] Sending request to Ollama: ${ollamaApiUrl}, model: ${this.ollamaModel}`);
-      
+      this.logger.debug(
+        `[LLM Job ${job.id}] Sending request to Ollama: ${ollamaApiUrl}, model: ${this.ollamaModel}`,
+      );
+
       const response = await firstValueFrom(
-        this.httpService.post(ollamaApiUrl, requestBody)
+        this.httpService.post(ollamaApiUrl, requestBody),
       );
 
       if (response.data && response.data.response) {
         const llmRawResponse = response.data.response;
-        this.logger.log(`[LLM Job ${job.id}] Received response from Ollama for messageLogId: ${messageLogId}`);
+        this.logger.log(
+          `[LLM Job ${job.id}] Received response from Ollama for messageLogId: ${messageLogId}`,
+        );
         // TODO: Javobni strukturalash logikasi kerak bo'lishi mumkin
         await this.messageLoggingService.updateMessageLogWithLlmResult(
           messageLogId,
           promptType,
           prompt, // Yuborilgan to'liq prompt
           llmRawResponse,
-          response.data // Xom javobni ham saqlashimiz mumkin
+          response.data, // Xom javobni ham saqlashimiz mumkin
         );
       } else {
-        this.logger.error(`[LLM Job ${job.id}] Invalid response structure from Ollama: ${JSON.stringify(response.data)}`);
-        await this.messageLoggingService.updateMessageLogLlmStatus(messageLogId, LlmAnalysisStatusEnum.FAILED_LLM_PROCESSING);
+        this.logger.error(
+          `[LLM Job ${job.id}] Invalid response structure from Ollama: ${JSON.stringify(response.data)}`,
+        );
+        await this.messageLoggingService.updateMessageLogLlmStatus(
+          messageLogId,
+          LlmAnalysisStatusEnum.FAILED_LLM_PROCESSING,
+        );
       }
     } catch (error) {
-      this.logger.error(`[LLM Job ${job.id}] Error calling Ollama service for messageLogId ${messageLogId}: ${error.message}`, error.stack);
-      await this.messageLoggingService.updateMessageLogLlmStatus(messageLogId, LlmAnalysisStatusEnum.FAILED_LLM_SERVICE);
+      this.logger.error(
+        `[LLM Job ${job.id}] Error calling Ollama service for messageLogId ${messageLogId}: ${error.message}`,
+        error.stack,
+      );
+      await this.messageLoggingService.updateMessageLogLlmStatus(
+        messageLogId,
+        LlmAnalysisStatusEnum.FAILED_LLM_SERVICE,
+      );
     }
   }
 }

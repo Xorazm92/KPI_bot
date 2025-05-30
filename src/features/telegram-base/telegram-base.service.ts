@@ -15,11 +15,18 @@ export class TelegramBaseService {
     private readonly configService: ConfigService,
   ) {}
 
-  async sendMessage(chatId: number | string, text: string, extra?: any): Promise<void> {
+  async sendMessage(
+    chatId: number | string,
+    text: string,
+    extra?: any,
+  ): Promise<void> {
     try {
       await this.bot.telegram.sendMessage(chatId, text, extra);
     } catch (error) {
-      this.logger.error(`Failed to send message to ${chatId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to send message to ${chatId}: ${error.message}`,
+        error.stack,
+      );
       // Potentially re-throw or handle specific errors (e.g., bot blocked by user)
     }
   }
@@ -28,7 +35,10 @@ export class TelegramBaseService {
     try {
       return (await this.bot.telegram.getFileLink(fileId)).href;
     } catch (error) {
-      this.logger.error(`Failed to get file link for ${fileId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get file link for ${fileId}: ${error.message}`,
+        error.stack,
+      );
       throw error; // Re-throw to be handled by caller
     }
   }
@@ -49,7 +59,9 @@ export class TelegramBaseService {
   }
 
   async downloadFile(fileUrl: string, localPath: string): Promise<void> {
-    this.logger.log(`Attempting to download file from ${fileUrl} to ${localPath}`);
+    this.logger.log(
+      `Attempting to download file from ${fileUrl} to ${localPath}`,
+    );
     try {
       // Ensure the directory exists
       const dirname = path.dirname(localPath);
@@ -70,25 +82,42 @@ export class TelegramBaseService {
           resolve();
         });
         writer.on('error', (error) => {
-          this.logger.error(`Error writing file to ${localPath}: ${error.message}`, error.stack);
+          this.logger.error(
+            `Error writing file to ${localPath}: ${error.message}`,
+            error.stack,
+          );
           // Attempt to clean up partially written file
           fs.unlink(localPath, (unlinkErr) => {
-            if (unlinkErr) this.logger.error(`Failed to unlink partial file ${localPath}: ${unlinkErr.message}`);
+            if (unlinkErr)
+              this.logger.error(
+                `Failed to unlink partial file ${localPath}: ${unlinkErr.message}`,
+              );
           });
           reject(new Error(`Failed to write file: ${error.message}`));
         });
-        response.data.on('error', (error) => { // Handle stream errors from axios
-            this.logger.error(`Error in download stream from ${fileUrl}: ${error.message}`, error.stack);
-            writer.close(); // Close writer to prevent further issues
-            reject(new Error(`Download stream error: ${error.message}`));
+        response.data.on('error', (error) => {
+          // Handle stream errors from axios
+          this.logger.error(
+            `Error in download stream from ${fileUrl}: ${error.message}`,
+            error.stack,
+          );
+          writer.close(); // Close writer to prevent further issues
+          reject(new Error(`Download stream error: ${error.message}`));
         });
       });
     } catch (error) {
-      this.logger.error(`Failed to download file from ${fileUrl}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to download file from ${fileUrl}: ${error.message}`,
+        error.stack,
+      );
       // Check if it's an axios error to provide more details
       if (axios.isAxiosError(error) && error.response) {
-        this.logger.error(`Axios error details: status=${error.response.status}, data=${JSON.stringify(error.response.data)}`);
-        throw new Error(`Failed to download file: ${error.response.status} - ${error.message}`);
+        this.logger.error(
+          `Axios error details: status=${error.response.status}, data=${JSON.stringify(error.response.data)}`,
+        );
+        throw new Error(
+          `Failed to download file: ${error.response.status} - ${error.message}`,
+        );
       }
       throw new Error(`Failed to download file: ${error.message}`);
     }

@@ -3,25 +3,34 @@ import { BaseEntity } from '../../../common/entities/base.entity';
 import { UserEntity } from './user.entity';
 import { UserRole } from '../../../common/enums/user-role.enum';
 
+/**
+ * UserChatRoleEntity
+ * Foydalanuvchi va chatdagi roli. Har bir user har bir chatda bir nechta rolda bo'lishi mumkin emas.
+ */
 @Entity('user_chat_roles')
-@Unique(['user', 'chatId']) // yoki @Unique(['userId', 'chatId']) agar JoinColumn ishlatilmasa
+@Unique(['userId', 'chatId'])
 export class UserChatRoleEntity extends BaseEntity {
-  @ManyToOne(() => UserEntity, (user) => user.chatRoles, { onDelete: 'CASCADE' })
+  @ManyToOne(() => UserEntity, (user) => user.chatRoles, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'userId' })
   user: UserEntity;
 
   @Column()
-  userId: string; // Foreign key uchun
+  userId: string;
 
   @Column({ type: 'bigint' })
   chatId: number;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', length: 32 })
   chatType: string; // 'private', 'group', 'supergroup', 'channel'
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.CLIENT })
   role: UserRole;
 
   @Column({ nullable: true })
-  chatTitle?: string; // Guruh yoki kanal nomi, qulaylik uchun
+  chatTitle?: string; // Guruh yoki kanal nomi
+
+  @Column({ default: true })
+  isActive: boolean; // Chatdagi roli aktiv yoki yo'qligi
 }

@@ -1,7 +1,12 @@
 import { Logger } from '@nestjs/common';
+import { escapeMarkdownV2 } from '../../common/utils/telegram-escape.util';
 import { Update, Ctx, Command, Action, Message } from 'nestjs-telegraf';
 import { Context } from 'telegraf';
-import { KpiViewService, GeneralKpiReport, AgentKpiReport } from './kpi-view.service';
+import {
+  KpiViewService,
+  GeneralKpiReport,
+  AgentKpiReport,
+} from './kpi-view.service';
 import { UserManagementService } from '../user-management/user-management.service';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -27,7 +32,10 @@ export class KpiViewUpdate {
     return `${minutes} daqiqa ${remainingSeconds} soniya`;
   }
 
-  private formatReport(report: GeneralKpiReport, periodDisplay: string): string {
+  private formatReport(
+    report: GeneralKpiReport,
+    periodDisplay: string,
+  ): string {
     let message = `📊 *KPI Hisoboti (${periodDisplay})* 📊\n\n`;
     message += `Umumiy Savollar: ${report.totalQuestions}\n`;
     message += `Javob Berilgan: ${report.totalAnswered}\n`;
@@ -37,7 +45,7 @@ export class KpiViewUpdate {
 
     if (report.agentsKpi.length > 0) {
       message += "*Agentlar Bo'yicha:*\n";
-      report.agentsKpi.forEach(agent => {
+      report.agentsKpi.forEach((agent) => {
         message += `  👨‍💻 Agent: ${agent.agentName} (ID: ${agent.agentId})\n`;
         message += `    Javob Berilgan Savollar: ${agent.totalQuestionsAnswered}\n`;
         message += `    O'rtacha Javob Vaqti: ${this.formatDuration(agent.averageResponseTimeSeconds)}\n`;
@@ -48,7 +56,10 @@ export class KpiViewUpdate {
   }
 
   @Command('kpi_report')
-  async onKpiReportCommand(@Ctx() ctx: Context, @Message('text') messageText: string): Promise<void> {
+  async onKpiReportCommand(
+    @Ctx() ctx: Context,
+    @Message('text') messageText: string,
+  ): Promise<void> {
     this.logger.log(
       `<<<<< KPI_REPORT COMMAND HANDLER TRIGGERED by user ${ctx.from?.id} in chat ${ctx.chat?.id} >>>>>`,
     );
@@ -56,14 +67,20 @@ export class KpiViewUpdate {
     const chat = ctx.chat;
 
     if (!telegramUser || !chat) {
-      this.logger.warn('Cannot identify user or chat from context for /kpi_report command');
+      this.logger.warn(
+        'Cannot identify user or chat from context for /kpi_report command',
+      );
       await ctx.reply('Sizni yoki chatni aniqlay olmadim.');
       return;
     }
 
-    const userEntity = await this.userManagementService.getUserByTelegramId(telegramUser.id);
+    const userEntity = await this.userManagementService.getUserByTelegramId(
+      telegramUser.id,
+    );
     if (!userEntity) {
-      this.logger.warn(`User with Telegram ID ${telegramUser.id} not found in database for /kpi_report.`);
+      this.logger.warn(
+        `User with Telegram ID ${telegramUser.id} not found in database for /kpi_report.`,
+      );
       await ctx.reply('Siz tizimda roʻyxatdan oʻtmagansiz.');
       return;
     }
@@ -73,11 +90,17 @@ export class KpiViewUpdate {
       where: { user: { id: userEntity.id }, chatId: chat.id },
     });
 
-    if (!userChatRole || userChatRole.role !== UserRole.SUPERVISOR) {
+    if (
+      !userChatRole ||
+      (userChatRole.role !== UserRole.SUPERVISOR &&
+        userChatRole.role !== UserRole.NAZORATCHI)
+    ) {
       this.logger.warn(
-        `User ${telegramUser.id} (DB ID: ${userEntity.id}, Chat Role: ${userChatRole?.role}) in chat ${chat.id} attempted to access /kpi_report without SUPERVISOR role.`,
+        `User ${telegramUser.id} (DB ID: ${userEntity.id}, Chat Role: ${userChatRole?.role}) in chat ${chat.id} attempted to access /kpi_report without required role.`,
       );
-      await ctx.reply('Bu buyruq faqat ushbu chatdagi supervayzerlar uchun.');
+      await ctx.reply(
+        'Bu buyruq faqat ushbu chatdagi nazoratchi yoki supervayzerlar uchun.',
+      );
       return;
     }
 
@@ -93,10 +116,7 @@ export class KpiViewUpdate {
       const report = await this.kpiViewService.getGeneralKpiReport(periodArg);
       const message = this.formatReport(report, periodDisplay);
 
-      // Escape parentheses for MarkdownV2, as they are causing "can't parse entities" errors.
-      // A more robust solution would involve escaping all special MarkdownV2 characters
-      // within the formatReport method itself, specifically for dynamic text parts.
-      const escapedMessage = message.replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+      const escapedMessage = escapeMarkdownV2(message);
 
       await ctx.replyWithMarkdownV2(escapedMessage);
       // this.logger.log(`Supervisor ${userEntity.telegramId} (Role: ${userChatRole.role}) requested KPI report for period: ${periodArg} in chat ${chat.id}`);
@@ -104,15 +124,22 @@ export class KpiViewUpdate {
       this.logger.error('KPI hisobotini olishda xatolik:', error);
       // Provide more specific error feedback if available
       if (error.response && error.response.description) {
-        await ctx.reply(`KPI hisobotini olishda xatolik yuz berdi: ${error.response.description}`);
+        await ctx.reply(
+          `KPI hisobotini olishda xatolik yuz berdi: ${error.response.description}`,
+        );
       } else {
-        await ctx.reply('KPI hisobotini olishda xatolik yuz berdi. Tafsilotlar uchun loglarni tekshiring.');
+        await ctx.reply(
+          'KPI hisobotini olishda xatolik yuz berdi. Tafsilotlar uchun loglarni tekshiring.',
+        );
       }
     }
   }
 
   @Command('kpi')
-  async onKpiCommand(@Ctx() ctx: Context, @Message('text') messageText: string) {
+  async onKpiCommand(
+    @Ctx() ctx: Context,
+    @Message('text') messageText: string,
+  ) {
     this.logger.log(
       `<<<<< KPI COMMAND HANDLER TRIGGERED by user ${ctx.from?.id} in chat ${ctx.chat?.id} >>>>>`,
     );
@@ -120,14 +147,20 @@ export class KpiViewUpdate {
     const chat = ctx.chat;
 
     if (!telegramUser || !chat) {
-      this.logger.warn('Cannot identify user or chat from context for /kpi command');
+      this.logger.warn(
+        'Cannot identify user or chat from context for /kpi command',
+      );
       await ctx.reply('Sizni yoki chatni aniqlay olmadim.');
       return;
     }
 
-    const userEntity = await this.userManagementService.getUserByTelegramId(telegramUser.id);
+    const userEntity = await this.userManagementService.getUserByTelegramId(
+      telegramUser.id,
+    );
     if (!userEntity) {
-      this.logger.warn(`User with Telegram ID ${telegramUser.id} not found in database.`);
+      this.logger.warn(
+        `User with Telegram ID ${telegramUser.id} not found in database.`,
+      );
       await ctx.reply('Siz tizimda roʻyxatdan oʻtmagansiz.');
       return;
     }
@@ -137,15 +170,24 @@ export class KpiViewUpdate {
       where: { user: { id: userEntity.id }, chatId: chat.id },
     });
 
-    if (!userChatRole || (userChatRole.role !== UserRole.SUPERVISOR && userChatRole.role !== UserRole.AGENT)) {
+    if (
+      !userChatRole ||
+      ![UserRole.SUPERVISOR, UserRole.NAZORATCHI, UserRole.AGENT].includes(
+        userChatRole.role,
+      )
+    ) {
       this.logger.warn(
-        `User ${telegramUser.id} (DB ID: ${userEntity.id}, Chat Role: ${userChatRole?.role}) in chat ${chat.id} attempted to access /kpi without SUPERVISOR or AGENT role.`,
+        `User ${telegramUser.id} (DB ID: ${userEntity.id}, Chat Role: ${userChatRole?.role}) in chat ${chat.id} attempted to access /kpi without required role.`,
       );
-      await ctx.reply('Bu buyruq faqat agentlar va supervayzerlar uchun.');
+      await ctx.reply(
+        'Bu buyruq faqat agentlar, nazoratchilar va supervayzerlar uchun.',
+      );
       return;
     }
 
-    this.logger.log(`User ${telegramUser.id} (Role: ${userChatRole.role}) requested KPI in chat ${chat.id}`);
+    this.logger.log(
+      `User ${telegramUser.id} (Role: ${userChatRole.role}) requested KPI in chat ${chat.id}`,
+    );
 
     const parts = messageText.split(' ');
     const period = parts.length > 1 ? parts[1].toLowerCase() : 'today'; // 'today', 'yesterday', 'last7days', 'last30days'
@@ -162,8 +204,8 @@ export class KpiViewUpdate {
 
       if (report.agentsKpi && report.agentsKpi.length > 0) {
         responseText += '**Agentlar Boʻyicha:**\n';
-        report.agentsKpi.forEach(agent => {
-          responseText += `  *Agent:* ${agent.agentName} (TGID: ${agent.agentId})\n`;
+        report.agentsKpi.forEach((agent) => {
+          responseText += `  *Agent:* ${agent.agentName} (TGID: ${agent.agentId})\\n`;
           responseText += `    Jami Belgilangan Savollar: ${agent.totalQuestionsAssigned || 0}\n`; // Bu maydon hozircha 0 bo'ladi
           responseText += `    Javob Berilgan Savollar: ${agent.totalQuestionsAnswered || 0}\n`;
           responseText += `    O'rtacha Javob Vaqti: ${agent.averageResponseTimeSeconds ? this.formatDuration(agent.averageResponseTimeSeconds) : 'N/A'}\n`;
@@ -173,7 +215,10 @@ export class KpiViewUpdate {
 
       await ctx.replyWithMarkdown(responseText);
     } catch (error) {
-      this.logger.error(`Error generating KPI report for period ${period}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating KPI report for period ${period}: ${error.message}`,
+        error.stack,
+      );
       await ctx.reply('KPI hisobotini yaratishda xatolik yuz berdi.');
     }
   }

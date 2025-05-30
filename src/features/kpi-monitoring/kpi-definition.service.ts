@@ -24,29 +24,46 @@ export class KpiDefinitionService {
       ...createKpiDefinitionDto,
       createdById: creator.id,
       status: createKpiDefinitionDto.status || KpiStatus.PENDING_APPROVAL,
-      startDate: createKpiDefinitionDto.startDate ? new Date(createKpiDefinitionDto.startDate) : undefined,
-      endDate: createKpiDefinitionDto.endDate ? new Date(createKpiDefinitionDto.endDate) : undefined,
+      startDate: createKpiDefinitionDto.startDate
+        ? new Date(createKpiDefinitionDto.startDate)
+        : undefined,
+      endDate: createKpiDefinitionDto.endDate
+        ? new Date(createKpiDefinitionDto.endDate)
+        : undefined,
     });
 
-    this.logger.log(`Creating new KPI Definition: ${createKpiDefinitionDto.name} by user ${creator.telegramId}`);
+    this.logger.log(
+      `Creating new KPI Definition: ${createKpiDefinitionDto.name} by user ${creator.telegramId}`,
+    );
     return this.kpiDefinitionRepository.save(newKpi);
   }
 
   async findAllKpiDefinitions(): Promise<KpiDefinitionEntity[]> {
     this.logger.log('Fetching all KPI Definitions');
-    return this.kpiDefinitionRepository.find({ relations: ['createdBy', 'approvedBy'] });
+    return this.kpiDefinitionRepository.find({
+      relations: ['createdBy', 'approvedBy'],
+    });
   }
 
-  async findKpiDefinitionById(id: string, options?: FindOneOptions<KpiDefinitionEntity>): Promise<KpiDefinitionEntity | null> {
+  async findKpiDefinitionById(
+    id: string,
+    options?: FindOneOptions<KpiDefinitionEntity>,
+  ): Promise<KpiDefinitionEntity | null> {
     this.logger.log(`Fetching KPI Definition with ID: ${id}`);
-    const kpi = await this.kpiDefinitionRepository.findOne({ where: { id }, ...options });
+    const kpi = await this.kpiDefinitionRepository.findOne({
+      where: { id },
+      ...options,
+    });
     if (!kpi) {
       this.logger.warn(`KPI Definition with ID: ${id} not found`);
     }
     return kpi;
   }
 
-  async findKpiDefinitionByIdOrFail(id: string, options?: FindOneOptions<KpiDefinitionEntity>): Promise<KpiDefinitionEntity> {
+  async findKpiDefinitionByIdOrFail(
+    id: string,
+    options?: FindOneOptions<KpiDefinitionEntity>,
+  ): Promise<KpiDefinitionEntity> {
     const kpi = await this.findKpiDefinitionById(id, options);
     if (!kpi) {
       throw new NotFoundException(`KPI Definition with ID ${id} not found`);
@@ -54,10 +71,17 @@ export class KpiDefinitionService {
     return kpi;
   }
 
-  async updateKpiDefinition(id: string, updateKpiDefinitionDto: UpdateKpiDefinitionDto): Promise<KpiDefinitionEntity> {
+  async updateKpiDefinition(
+    id: string,
+    updateKpiDefinitionDto: UpdateKpiDefinitionDto,
+  ): Promise<KpiDefinitionEntity> {
     const kpi = await this.findKpiDefinitionByIdOrFail(id);
 
-    const { startDate: startDateString, endDate: endDateString, ...restOfDto } = updateKpiDefinitionDto;
+    const {
+      startDate: startDateString,
+      endDate: endDateString,
+      ...restOfDto
+    } = updateKpiDefinitionDto;
 
     const updatePayload: Partial<KpiDefinitionEntity> = {
       ...restOfDto,
@@ -70,7 +94,7 @@ export class KpiDefinitionService {
       updatePayload.endDate = new Date(endDateString);
     }
 
-    Object.keys(updatePayload).forEach(key => {
+    Object.keys(updatePayload).forEach((key) => {
       if (updatePayload[key] === undefined) {
         delete updatePayload[key];
       }
@@ -81,12 +105,17 @@ export class KpiDefinitionService {
     return this.kpiDefinitionRepository.save(kpi);
   }
 
-  async approveKpiDefinition(id: string, approver: UserEntity): Promise<KpiDefinitionEntity> {
+  async approveKpiDefinition(
+    id: string,
+    approver: UserEntity,
+  ): Promise<KpiDefinitionEntity> {
     const kpi = await this.findKpiDefinitionByIdOrFail(id);
     kpi.status = KpiStatus.ACTIVE;
     kpi.approvedById = approver.id;
     kpi.approvedBy = approver;
-    this.logger.log(`KPI Definition ${id} approved by user ${approver.telegramId}`);
+    this.logger.log(
+      `KPI Definition ${id} approved by user ${approver.telegramId}`,
+    );
     return this.kpiDefinitionRepository.save(kpi);
   }
 }

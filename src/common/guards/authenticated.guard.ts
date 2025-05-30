@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { Context } from 'telegraf';
 import { UserEntity } from '../../features/user-management/entities/user.entity';
 
@@ -11,12 +16,16 @@ export class AuthenticatedGuard implements CanActivate {
     const request = httpCtx.getRequest();
 
     // Check if it's a Telegraf context
-    const telegrafCtx = context.getArgByIndex<Context & { session?: { userEntity?: UserEntity } }>(0);
+    const telegrafCtx = context.getArgByIndex<
+      Context & { session?: { userEntity?: UserEntity } }
+    >(0);
 
     if (telegrafCtx && telegrafCtx.session) {
       const userInSession = telegrafCtx.session.userEntity;
       if (userInSession) {
-        this.logger.debug(`User ${userInSession.telegramId} is authenticated via session.`);
+        this.logger.debug(
+          `User ${userInSession.telegramId} is authenticated via session.`,
+        );
         return true;
       }
     }

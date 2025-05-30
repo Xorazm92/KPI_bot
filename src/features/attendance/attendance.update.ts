@@ -28,36 +28,47 @@ export class AttendanceUpdate {
     }
 
     // 1. Get UserEntity by Telegram ID
-    let userEntity = await this.userManagementService.getUserByTelegramId(telegramUser.id);
+    let userEntity = await this.userManagementService.getUserByTelegramId(
+      telegramUser.id,
+    );
     let isNewUserInSystem = false;
 
     // 2. If UserEntity not found, register new user
     if (!userEntity) {
-      this.logger.log(`User with Telegram ID ${telegramUser.id} not found for attendance. Registering.`);
+      this.logger.log(
+        `User with Telegram ID ${telegramUser.id} not found for attendance. Registering.`,
+      );
       userEntity = await this.userManagementService.registerUser({
         telegramId: telegramUser.id,
         username: telegramUser.username,
         firstName: telegramUser.first_name, // Use snake_case from TelegrafUser
-        lastName: telegramUser.last_name,   // Use snake_case from TelegrafUser
+        lastName: telegramUser.last_name, // Use snake_case from TelegrafUser
       });
       isNewUserInSystem = true;
-      this.logger.log(`User ${userEntity.id} (TG: ${telegramUser.id}) registered for attendance.`);
+      this.logger.log(
+        `User ${userEntity.id} (TG: ${telegramUser.id}) registered for attendance.`,
+      );
     }
 
     // 3. Find or create user role in the current chat
-    const { user, userChatRole, isNewChatRole } = await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(
-      userEntity, 
-      ctx.chat!, // Assert chat is not null/undefined here
-    );
+    const { user, userChatRole, isNewChatRole } =
+      await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(
+        userEntity,
+        ctx.chat!, // Assert chat is not null/undefined here
+      );
 
     if (!user || !userChatRole) {
-      this.logger.error(`Failed to get user or userChatRole for TGID: ${telegramUser.id} in chat ${ctx.chat!.id} for attendance.`);
-      await ctx.reply('Foydalanuvchi maʼlumotlarini yoki chatdagi rolni olib boʻlmadi.');
+      this.logger.error(
+        `Failed to get user or userChatRole for TGID: ${telegramUser.id} in chat ${ctx.chat!.id} for attendance.`,
+      );
+      await ctx.reply(
+        'Foydalanuvchi maʼlumotlarini yoki chatdagi rolni olib boʻlmadi.',
+      );
       return;
     }
 
     this.logger.log(
-      `Attendance command from User ${user.id} (TG: ${user.telegramId}), Role in chat ${ctx.chat!.id}: ${userChatRole.role}. New user: ${isNewUserInSystem}, New chat role: ${isNewChatRole}`
+      `Attendance command from User ${user.id} (TG: ${user.telegramId}), Role in chat ${ctx.chat!.id}: ${userChatRole.role}. New user: ${isNewUserInSystem}, New chat role: ${isNewChatRole}`,
     );
 
     // Check if user is an agent in this chat
@@ -70,7 +81,9 @@ export class AttendanceUpdate {
     }
 
     const notes = messageText.split(' ').slice(1).join(' ').trim() || undefined;
-    this.logger.log(`User ${user.telegramId} attempting ${action} with notes: '${notes || ''}'`);
+    this.logger.log(
+      `User ${user.telegramId} attempting ${action} with notes: '${notes || ''}'`,
+    );
 
     try {
       let result;
@@ -86,28 +99,44 @@ export class AttendanceUpdate {
         );
       }
     } catch (error: any) {
-      this.logger.error(`Error during ${action} for user ${user.telegramId}: ${error.message}`);
-      await ctx.reply(error.message || `Amaliyotni (${action}) bajarishda xatolik yuz berdi.`);
+      this.logger.error(
+        `Error during ${action} for user ${user.telegramId}: ${error.message}`,
+      );
+      await ctx.reply(
+        error.message || `Amaliyotni (${action}) bajarishda xatolik yuz berdi.`,
+      );
     }
   }
 
   @Command('checkin')
-  async onCheckInCommand(@Ctx() ctx: Context, @Message('text') messageText: string): Promise<void> {
+  async onCheckInCommand(
+    @Ctx() ctx: Context,
+    @Message('text') messageText: string,
+  ): Promise<void> {
     await this.handleAttendanceCommand(ctx, messageText, 'checkin');
   }
 
   @Command('in') // Qisqa buyruq
-  async onInCommand(@Ctx() ctx: Context, @Message('text') messageText: string): Promise<void> {
+  async onInCommand(
+    @Ctx() ctx: Context,
+    @Message('text') messageText: string,
+  ): Promise<void> {
     await this.handleAttendanceCommand(ctx, messageText, 'checkin');
   }
 
   @Command('checkout')
-  async onCheckOutCommand(@Ctx() ctx: Context, @Message('text') messageText: string): Promise<void> {
+  async onCheckOutCommand(
+    @Ctx() ctx: Context,
+    @Message('text') messageText: string,
+  ): Promise<void> {
     await this.handleAttendanceCommand(ctx, messageText, 'checkout');
   }
 
   @Command('out') // Qisqa buyruq
-  async onOutCommand(@Ctx() ctx: Context, @Message('text') messageText: string): Promise<void> {
+  async onOutCommand(
+    @Ctx() ctx: Context,
+    @Message('text') messageText: string,
+  ): Promise<void> {
     await this.handleAttendanceCommand(ctx, messageText, 'checkout');
   }
 }

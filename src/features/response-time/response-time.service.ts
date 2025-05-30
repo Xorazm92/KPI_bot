@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class ResponseTimeService {
   private readonly logger = new Logger(ResponseTimeService.name);
-  private readonly clientQuestionTimeoutMinutes: number;
+  private readonly CLIENTQuestionTimeoutMinutes: number;
   private readonly agentResponseTimeoutMinutes: number;
 
   constructor(
@@ -18,16 +18,22 @@ export class ResponseTimeService {
     private readonly messageLogRepository: Repository<MessageLogEntity>,
     private readonly configService: ConfigService,
   ) {
-    this.clientQuestionTimeoutMinutes = this.configService.get<number>('CLIENT_QUESTION_TIMEOUT_MINUTES', 10);
-    this.agentResponseTimeoutMinutes = this.configService.get<number>('AGENT_RESPONSE_TIMEOUT_MINUTES', 5);
+    this.CLIENTQuestionTimeoutMinutes = this.configService.get<number>(
+      'CLIENT_QUESTION_TIMEOUT_MINUTES',
+      10,
+    );
+    this.agentResponseTimeoutMinutes = this.configService.get<number>(
+      'AGENT_RESPONSE_TIMEOUT_MINUTES',
+      5,
+    );
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
-  async handleTimedOutClientQuestions() {
-    this.logger.debug('Running cron job: handleTimedOutClientQuestions');
-    // const timeoutThreshold = new Date(Date.now() - this.clientQuestionTimeoutMinutes * 60 * 1000);
+  async handleTimedOutCLIENTQuestions() {
+    this.logger.debug('Running cron job: handleTimedOutCLIENTQuestions');
+    // const timeoutThreshold = new Date(Date.now() - this.CLIENTQuestionTimeoutMinutes * 60 * 1000);
 
-    // const pendingClientQuestions = await this.messageLogRepository.find({
+    // const pendingCLIENTQuestions = await this.messageLogRepository.find({
     //   where: {
     //     isQuestion: true,
     //     // questionStatus: QuestionStatus.PENDING, // Temporarily commented out
@@ -41,9 +47,9 @@ export class ResponseTimeService {
     //   relations: ['user', 'user.chatRoles', 'user.chatRoles.role'], // Ensure relations are loaded
     // });
 
-    // for (const question of pendingClientQuestions) {
-    //   // if (question.user && question.user.chatRoles && question.user.chatRoles.some(chatRole => chatRole.role === UserRole.CLIENT)) { // Check role correctly
-    //   //   this.logger.log(`Client question ID ${question.id} from user ${question.user.telegramId} has timed out.`);
+    // for (const question of pendingCLIENTQuestions) {
+    //   // if (question.user && question.user.chatRoles && question.user.chatRoles.some(chatRole => chatRole.role === UserRole.    BANK_CLIENT)) { // Check role correctly
+    //   //   this.logger.log(`CLIENT question ID ${question.id} from user ${question.user.telegramId} has timed out.`);
     //   //   // question.questionStatus = QuestionStatus.TIMEOUT_CLIENT; // Temporarily commented out
     //   //   question.questionStatusTemp = 'TIMEOUT_CLIENT'; // Using temp field
     //   //   await this.messageLogRepository.save(question);
@@ -74,7 +80,14 @@ export class ResponseTimeService {
   }
 
   async checkForUnansweredFollowUps(messageLog: MessageLogEntity) {
-    if (!messageLog.user || !messageLog.user.chatRoles || !messageLog.user.chatRoles.some(chatRole => chatRole.role === UserRole.CLIENT) || !messageLog.isQuestion) {
+    if (
+      !messageLog.user ||
+      !messageLog.user.chatRoles ||
+      !messageLog.user.chatRoles.some(
+        (chatRole) => chatRole.role === UserRole.CLIENT,
+      ) ||
+      !messageLog.isQuestion
+    ) {
       return;
     }
 
@@ -82,7 +95,7 @@ export class ResponseTimeService {
     // const recentAnsweredQuestions = await this.messageLogRepository.find({
     //   where: {
     //     chatId: messageLog.chatId,
-    //     user: { id: messageLog.user.id }, 
+    //     user: { id: messageLog.user.id },
     //     isQuestion: true,
     //     // questionStatus: QuestionStatus.ANSWERED, // Temporarily commented out
     //     questionStatusTemp: 'ANSWERED',
@@ -91,13 +104,13 @@ export class ResponseTimeService {
     //   },
     //   order: { timestamp: 'DESC' },
     //   take: 1,
-    //   relations: ['user'], 
+    //   relations: ['user'],
     // });
 
     // if (recentAnsweredQuestions.length > 0) {
     //   const lastAnsweredQuestion = recentAnsweredQuestions[0];
     //   this.logger.log(
-    //     `Client ${messageLog.user.telegramId} sent a new message (ID: ${messageLog.id}) after a recent answered question (ID: ${lastAnsweredQuestion.id}). This might be a follow-up.`, 
+    //     `CLIENT ${messageLog.user.telegramId} sent a new message (ID: ${messageLog.id}) after a recent answered question (ID: ${lastAnsweredQuestion.id}). This might be a follow-up.`,
     //   );
     // }
   }

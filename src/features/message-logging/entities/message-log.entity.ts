@@ -1,6 +1,15 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 import { UserEntity } from '../../user-management/entities/user.entity';
-import { UserRole } from '../../../common/enums/user-role.enum'; 
+import { UserRole } from '../../../common/enums/user-role.enum';
+import { OneToMany, JoinColumn } from 'typeorm';
+import { MessageResponseEntity } from './message-response.entity';
 import { SttStatusEnum } from '../../ai-processing/enums/stt-status.enum'; // To'g'rilangan yo'l
 import { LlmAnalysisStatusEnum } from '../../ai-processing/enums/llm-analysis-status.enum'; // To'g'rilangan yo'l
 
@@ -12,10 +21,10 @@ export enum MessageDirection {
 }
 
 export enum AnswerDetectionMethod {
-  REPLY = 'REPLY',                         // To'g'ridan-to'g'ri javob (reply)
+  REPLY = 'REPLY', // To'g'ridan-to'g'ri javob (reply)
   TIME_WINDOW_SIMPLE = 'TIME_WINDOW_SIMPLE', // Vaqt oralig'ida kelgan javob (oddiy)
   AI_CONFIRMED = 'AI_CONFIRMED',
-  SYSTEM_TIMEOUT = 'SYSTEM_TIMEOUT',     // Tizim tomonidan vaqt tugashi
+  SYSTEM_TIMEOUT = 'SYSTEM_TIMEOUT', // Tizim tomonidan vaqt tugashi
 }
 
 @Entity('message_logs')
@@ -24,10 +33,13 @@ export class MessageLogEntity {
   id: string;
 
   @Index()
-  @Column({ type: 'bigint', nullable: true }) 
-  telegramMessageId?: number; 
+  @Column({ type: 'bigint', nullable: true })
+  telegramMessageId?: number;
 
-  @ManyToOne(() => UserEntity, (user) => user.messageLogs, { nullable: false, eager: true }) 
+  @ManyToOne(() => UserEntity, (user) => user.messageLogs, {
+    nullable: false,
+    eager: true,
+  })
   user: UserEntity;
 
   @Index()
@@ -40,7 +52,7 @@ export class MessageLogEntity {
   @Column({
     type: 'enum',
     enum: MessageDirection,
-    nullable: true, 
+    nullable: true,
   })
   direction?: MessageDirection;
 
@@ -48,12 +60,12 @@ export class MessageLogEntity {
   timestamp: Date;
 
   @Column({ type: 'jsonb', nullable: true })
-  rawMessage?: any; 
+  rawMessage?: any;
 
   @Column({
     type: 'enum',
     enum: UserRole,
-    nullable: true, 
+    nullable: true,
   })
   senderRoleAtMoment?: UserRole;
 
@@ -66,7 +78,7 @@ export class MessageLogEntity {
   @Column({ type: 'bigint', nullable: true })
   answeredByMessageId?: number;
 
-  @ManyToOne(() => UserEntity, { nullable: true, eager: false }) 
+  @ManyToOne(() => UserEntity, { nullable: true, eager: false })
   answeredByUser?: UserEntity;
 
   @Column({ type: 'integer', nullable: true })
@@ -122,6 +134,9 @@ export class MessageLogEntity {
 
   @Column({ type: 'jsonb', nullable: true })
   llmStructuredResponse: any | null; // LLM javobidan ajratib olingan tuzilmali ma'lumot
+
+  @OneToMany(() => MessageResponseEntity, (response) => response.originalMessage)
+  responses: MessageResponseEntity[];
 
   constructor(partial: Partial<MessageLogEntity>) {
     Object.assign(this, partial);

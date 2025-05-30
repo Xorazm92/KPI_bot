@@ -33,7 +33,8 @@ import { MessageDirection } from '../message-logging/entities/message-log.entity
 import { KpiDefinitionService } from '../kpi-monitoring/kpi-definition.service';
 import { CreateKpiDefinitionDto } from '../kpi-monitoring/dto/create-kpi-definition.dto';
 import { AiQueueService } from '../ai-processing/ai-queue.service';
-import { SttStatusEnum } from '../ai-processing/enums/stt-status.enum'; // Import qilindi
+import { SttStatusEnum } from '../ai-processing/enums/stt-status.enum';
+import { QuestionMonitoringService } from '../question-monitoring/question-monitoring.service';
 
 interface TelegramError extends Error {
   message: string;
@@ -55,7 +56,10 @@ const Chat = createParamDecorator(
 
     if (telegrafCtx.update) {
       try {
-        logger.warn('Telegraf Ctx Update Object:', JSON.stringify(telegrafCtx.update, null, 2));
+        logger.warn(
+          'Telegraf Ctx Update Object:',
+          JSON.stringify(telegrafCtx.update, null, 2),
+        );
       } catch (e: any) {
         logger.error('Error stringifying telegrafCtx.update:', e.message);
         logger.warn('Telegraf Ctx Update Object (raw):', telegrafCtx.update);
@@ -66,7 +70,10 @@ const Chat = createParamDecorator(
 
     if (telegrafCtx.chat) {
       try {
-        logger.log('Telegraf Ctx Chat Object:', JSON.stringify(telegrafCtx.chat, null, 2));
+        logger.log(
+          'Telegraf Ctx Chat Object:',
+          JSON.stringify(telegrafCtx.chat, null, 2),
+        );
       } catch (e: any) {
         logger.error('Error stringifying telegrafCtx.chat:', e.message);
         logger.log('Telegraf Ctx Chat Object (raw):', telegrafCtx.chat);
@@ -74,15 +81,25 @@ const Chat = createParamDecorator(
     } else {
       logger.warn('telegrafCtx.chat is undefined. This is the primary issue.');
       try {
-        logger.warn('Full Telegraf context (telegrafCtx) for debugging when chat is missing:', JSON.stringify(telegrafCtx, (key, value) => {
-          if (value instanceof Buffer) { 
-            return '[Buffer data]';
-          }
-          return value;
-        }, 2));
+        logger.warn(
+          'Full Telegraf context (telegrafCtx) for debugging when chat is missing:',
+          JSON.stringify(
+            telegrafCtx,
+            (key, value) => {
+              if (value instanceof Buffer) {
+                return '[Buffer data]';
+              }
+              return value;
+            },
+            2,
+          ),
+        );
       } catch (e: any) {
         logger.error('Error stringifying full telegrafCtx:', e.message);
-        logger.warn('Full Telegraf context (telegrafCtx) (raw, could be large/complex):', telegrafCtx);
+        logger.warn(
+          'Full Telegraf context (telegrafCtx) (raw, could be large/complex):',
+          telegrafCtx,
+        );
       }
       throw new BadRequestException('Chat context is required');
     }
@@ -120,14 +137,15 @@ export class TelegramBaseUpdate {
   constructor(
     private readonly userManagementService: UserManagementService,
     private readonly messageLoggingService: MessageLoggingService,
-    private readonly kpiDefinitionService: KpiDefinitionService, 
-    private readonly aiQueueService: AiQueueService, // Qo'shildi
+    private readonly kpiDefinitionService: KpiDefinitionService,
+    private readonly aiQueueService: AiQueueService,
+    private readonly questionMonitoringService: QuestionMonitoringService,
   ) {
     this.logger.log('TelegramBaseUpdate instance created');
   }
 
   @Start()
-  @UseGuards(AuthenticatedGuard) 
+  @UseGuards(AuthenticatedGuard)
   async onStart(
     @Ctx() ctx: TelegrafContext,
     @User() user: UserEntity,
@@ -138,7 +156,9 @@ export class TelegramBaseUpdate {
 
     if (!tgUser || !chat) {
       this.logger.warn('User or chat is undefined in onStart');
-      await ctx.reply('Xatolik: Foydalanuvchi yoki chat maʼlumotlari topilmadi.');
+      await ctx.reply(
+        'Xatolik: Foydalanuvchi yoki chat maʼlumotlari topilmadi.',
+      );
       return;
     }
 
@@ -150,16 +170,22 @@ export class TelegramBaseUpdate {
       // Log the incoming /start command
       if (ctx.message) {
         const telegramMessage = ctx.message as TelegrafMessage;
-        const { userChatRole, isNewUser, isNewChatRole } = await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(user, chat);
+        const { userChatRole, isNewUser, isNewChatRole } =
+          await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(
+            user,
+            chat,
+          );
         await this.messageLoggingService.logMessage(
           telegramMessage,
-          user, 
-          chat, 
+          user,
+          chat,
           MessageDirection.INCOMING,
           userChatRole.role, // Added senderRoleAtMoment
         );
       } else {
-        this.logger.warn(`ctx.message is undefined in onStart for user ${user.telegramId}`);
+        this.logger.warn(
+          `ctx.message is undefined in onStart for user ${user.telegramId}`,
+        );
       }
 
       const { userChatRole, isNewUser, isNewChatRole } =
@@ -168,7 +194,7 @@ export class TelegramBaseUpdate {
           chat,
         );
 
-      let replyMessageText = `Assalomu alaykum, ${user.firstName || user.username}! Botimizga xush kelibsiz.\nSizning rolingiz: ${userChatRole.role}`;
+      const replyMessageText = `Assalomu alaykum, ${user.firstName || user.username}! Botimizga xush kelibsiz.\nSizning rolingiz: ${userChatRole.role}`;
       // if (isNewUser) {
       //   replyMessageText += '\nSiz tizimda yangi foydalanuvchi sifatida roʻyxatdan oʻtdingiz.';
       // }
@@ -177,41 +203,49 @@ export class TelegramBaseUpdate {
       // }
 
       const sentReply = await ctx.reply(replyMessageText);
-      if (sentReply && chat) { // chat mavjudligini tekshirish
+      if (sentReply && chat) {
+        // chat mavjudligini tekshirish
         try {
-            const botUser = await this.userManagementService.getBotUserEntity();
-            await this.messageLoggingService.logMessage(
-                sentReply, 
-                botUser, 
-                chat, 
-                MessageDirection.OUTGOING,
-                UserRole.BOT // Added senderRoleAtMoment
-            );
+          const botUser = await this.userManagementService.getBotUserEntity();
+          await this.messageLoggingService.logMessage(
+            sentReply,
+            botUser,
+            chat,
+            MessageDirection.OUTGOING,
+            UserRole.BOT, // Added senderRoleAtMoment
+          );
         } catch (logError) {
-            this.logger.error(`Failed to log outgoing message in onStart: ${logError.message}`, logError.stack);
+          this.logger.error(
+            `Failed to log outgoing message in onStart: ${logError.message}`,
+            logError.stack,
+          );
         }
       }
-
     } catch (error) {
       const err = error as TelegramError;
       this.logger.error(
         `Error in onStart for user ${tgUser.id}: ${err.message}`,
         err.stack,
       );
-      const errorReplyText = 'Botni ishga tushirishda xatolik yuz berdi. Iltimos, keyinroq qayta urinib koʻring.';
+      const errorReplyText =
+        'Botni ishga tushirishda xatolik yuz berdi. Iltimos, keyinroq qayta urinib koʻring.';
       const errorReply = await ctx.reply(errorReplyText);
-      if (errorReply && chat) { // chat mavjudligini tekshirish
+      if (errorReply && chat) {
+        // chat mavjudligini tekshirish
         try {
-            const botUser = await this.userManagementService.getBotUserEntity();
-            await this.messageLoggingService.logMessage(
-                errorReply, 
-                botUser, 
-                chat, 
-                MessageDirection.OUTGOING,
-                UserRole.BOT // Added senderRoleAtMoment
-            );
+          const botUser = await this.userManagementService.getBotUserEntity();
+          await this.messageLoggingService.logMessage(
+            errorReply,
+            botUser,
+            chat,
+            MessageDirection.OUTGOING,
+            UserRole.BOT, // Added senderRoleAtMoment
+          );
         } catch (logError) {
-            this.logger.error(`Failed to log outgoing error reply in onStart: ${logError.message}`, logError.stack);
+          this.logger.error(
+            `Failed to log outgoing error reply in onStart: ${logError.message}`,
+            logError.stack,
+          );
         }
       }
     }
@@ -220,7 +254,7 @@ export class TelegramBaseUpdate {
   @Help()
   @UseGuards(AuthenticatedGuard)
   async onHelp(
-    @Ctx() ctx: TelegrafContext, 
+    @Ctx() ctx: TelegrafContext,
     @User() user: UserEntity,
     @Chat() chat: TelegrafChat, // Chat ni olish
   ) {
@@ -231,12 +265,18 @@ export class TelegramBaseUpdate {
     }
 
     try {
-      const { userChatRole, isNewUser, isNewChatRole } = await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(user, chat);
+      const { userChatRole, isNewUser, isNewChatRole } =
+        await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(
+          user,
+          chat,
+        );
       if (isNewUser) {
         this.logger.log(`New user ${user.telegramId} processed in onHelp.`);
       }
       if (isNewChatRole) {
-        this.logger.log(`New chat role ${userChatRole.role} assigned to user ${user.telegramId} in chat ${chat.id}.`);
+        this.logger.log(
+          `New chat role ${userChatRole.role} assigned to user ${user.telegramId} in chat ${chat.id}.`,
+        );
       }
 
       // Log incoming /help command
@@ -248,33 +288,38 @@ export class TelegramBaseUpdate {
         userChatRole.role, // Added senderRoleAtMoment
       );
 
-      const helpText = 'This is the help message. Available commands:\n/start - Start the bot\n/help - Show this help message\n/assign_role <username_or_id> <role> - Assign role (ADMIN only)';
-      
+      const helpText =
+        'This is the help message. Available commands:\n/start - Start the bot\n/help - Show this help message\n/assign_role <username_or_id> <role> - Assign role (ADMIN only)';
+
       // Log the incoming /help command
       if (ctx.message && chat) {
-          await this.messageLoggingService.logMessage(
-              ctx.message as TelegrafMessage, 
-              user, 
-              chat, 
-              MessageDirection.INCOMING,
-              userChatRole.role // Added senderRoleAtMoment
-          );
+        await this.messageLoggingService.logMessage(
+          ctx.message as TelegrafMessage,
+          user,
+          chat,
+          MessageDirection.INCOMING,
+          userChatRole.role, // Added senderRoleAtMoment
+        );
       }
 
       const sentMessage = await ctx.reply(helpText);
-      if (sentMessage && chat) { // chat mavjudligini tekshirish
-          try {
-              const botUser = await this.userManagementService.getBotUserEntity();
-              await this.messageLoggingService.logMessage(
-                  sentMessage, 
-                  botUser, 
-                  chat, 
-                  MessageDirection.OUTGOING,
-                  UserRole.BOT // Added senderRoleAtMoment
-              );
-          } catch (logError) {
-              this.logger.error(`Failed to log outgoing message in onHelp: ${logError.message}`, logError.stack);
-          }
+      if (sentMessage && chat) {
+        // chat mavjudligini tekshirish
+        try {
+          const botUser = await this.userManagementService.getBotUserEntity();
+          await this.messageLoggingService.logMessage(
+            sentMessage,
+            botUser,
+            chat,
+            MessageDirection.OUTGOING,
+            UserRole.BOT, // Added senderRoleAtMoment
+          );
+        } catch (logError) {
+          this.logger.error(
+            `Failed to log outgoing message in onHelp: ${logError.message}`,
+            logError.stack,
+          );
+        }
       }
     } catch (error) {
       const err = error as TelegramError;
@@ -282,20 +327,25 @@ export class TelegramBaseUpdate {
         `Error in onHelp for user ${user.telegramId}: ${err.message}`,
         err.stack,
       );
-      const replyText = 'Xatolik yuz berdi. Iltimos, keyinroq qayta urinib koʻring.';
+      const replyText =
+        'Xatolik yuz berdi. Iltimos, keyinroq qayta urinib koʻring.';
       const sentReply = await ctx.reply(replyText);
-      if (sentReply && chat) { // chat mavjudligini tekshirish
+      if (sentReply && chat) {
+        // chat mavjudligini tekshirish
         try {
-            const botUser = await this.userManagementService.getBotUserEntity();
-            await this.messageLoggingService.logMessage(
-                sentReply, 
-                botUser, 
-                chat, 
-                MessageDirection.OUTGOING,
-                UserRole.BOT // Added senderRoleAtMoment
-            );
+          const botUser = await this.userManagementService.getBotUserEntity();
+          await this.messageLoggingService.logMessage(
+            sentReply,
+            botUser,
+            chat,
+            MessageDirection.OUTGOING,
+            UserRole.BOT, // Added senderRoleAtMoment
+          );
         } catch (logError) {
-            this.logger.error(`Failed to log outgoing error reply in onHelp: ${logError.message}`, logError.stack);
+          this.logger.error(
+            `Failed to log outgoing error reply in onHelp: ${logError.message}`,
+            logError.stack,
+          );
         }
       }
     }
@@ -303,21 +353,25 @@ export class TelegramBaseUpdate {
 
   @Command('assign_role')
   @UseGuards(AuthenticatedGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
+  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.NAZORATCHI)
   async assignRole(
     @Ctx() ctx: TelegrafContext,
-    @User() assigner: UserEntity, 
-    @Chat() chat: TelegrafChat,   
+    @User() assigner: UserEntity,
+    @Chat() chat: TelegrafChat,
   ): Promise<void> {
     const telegramMessage = ctx.message as TelegrafMessage;
     if (!telegramMessage || !('text' in telegramMessage)) {
       this.logger.warn('Telegram message or text is undefined in assignRole');
-      await ctx.reply('Xatolik: Buyruq formati noto\'g\'ri.');
+      await ctx.reply("Xatolik: Buyruq formati noto'g'ri.");
       return;
     }
 
     try {
-      const { userChatRole: assignerUserChatRole } = await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(assigner, chat);
+      const { userChatRole: assignerUserChatRole } =
+        await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(
+          assigner,
+          chat,
+        );
 
       // Log incoming /assign_role command
       await this.messageLoggingService.logMessage(
@@ -330,11 +384,18 @@ export class TelegramBaseUpdate {
 
       const parts = telegramMessage.text.split(' ');
       if (parts.length < 3) {
-        const replyText = 'Noto\'g\'ri format. Foydalanish: /assign_role <foydalanuvchi_nomi_yoki_id> <rol>';
+        const replyText =
+          "Noto'g'ri format. Foydalanish: /assign_role <foydalanuvchi_nomi_yoki_id> <rol>";
         const sentReply = await ctx.reply(replyText);
         if (sentReply) {
-            const botUser = await this.userManagementService.getBotUserEntity();
-            await this.messageLoggingService.logMessage(sentReply, botUser, chat, MessageDirection.OUTGOING, UserRole.BOT); // Added senderRoleAtMoment
+          const botUser = await this.userManagementService.getBotUserEntity();
+          await this.messageLoggingService.logMessage(
+            sentReply,
+            botUser,
+            chat,
+            MessageDirection.OUTGOING,
+            UserRole.BOT,
+          ); // Added senderRoleAtMoment
         }
         return;
       }
@@ -345,9 +406,15 @@ export class TelegramBaseUpdate {
       if (!Object.values(UserRole).includes(roleName)) {
         const replyText = `Noto\'g\'ri rol: ${roleName}. Mavjud rollar: ${Object.values(UserRole).join(', ')}`;
         const sentReply = await ctx.reply(replyText);
-         if (sentReply) {
-            const botUser = await this.userManagementService.getBotUserEntity();
-            await this.messageLoggingService.logMessage(sentReply, botUser, chat, MessageDirection.OUTGOING, UserRole.BOT); // Added senderRoleAtMoment
+        if (sentReply) {
+          const botUser = await this.userManagementService.getBotUserEntity();
+          await this.messageLoggingService.logMessage(
+            sentReply,
+            botUser,
+            chat,
+            MessageDirection.OUTGOING,
+            UserRole.BOT,
+          ); // Added senderRoleAtMoment
         }
         return;
       }
@@ -355,18 +422,24 @@ export class TelegramBaseUpdate {
       try {
         const updatedUser = await this.userManagementService.assignRoleToUser(
           targetIdentifier,
-          chat.id, 
+          chat.id,
           roleName,
           assigner,
         );
         const replyText = updatedUser
           ? `Foydalanuvchi ${updatedUser.username || updatedUser.firstName} (${updatedUser.telegramId}) uchun ${chat.type} chatida ${roleName} roli muvaffaqiyatli tayinlandi.`
           : `Foydalanuvchi ${targetIdentifier} uchun rol tayinlashda xatolik yoki foydalanuvchi topilmadi.`;
-        
+
         const sentReply = await ctx.reply(replyText);
         if (sentReply) {
           const botUser = await this.userManagementService.getBotUserEntity();
-          await this.messageLoggingService.logMessage(sentReply, botUser, chat, MessageDirection.OUTGOING, UserRole.BOT); // Added senderRoleAtMoment
+          await this.messageLoggingService.logMessage(
+            sentReply,
+            botUser,
+            chat,
+            MessageDirection.OUTGOING,
+            UserRole.BOT,
+          ); // Added senderRoleAtMoment
         }
       } catch (error) {
         const err = error as TelegramError;
@@ -378,10 +451,19 @@ export class TelegramBaseUpdate {
         const sentReply = await ctx.reply(replyText);
         if (sentReply) {
           try {
-              const botUser = await this.userManagementService.getBotUserEntity();
-              await this.messageLoggingService.logMessage(sentReply, botUser, chat, MessageDirection.OUTGOING, UserRole.BOT); // Added senderRoleAtMoment
+            const botUser = await this.userManagementService.getBotUserEntity();
+            await this.messageLoggingService.logMessage(
+              sentReply,
+              botUser,
+              chat,
+              MessageDirection.OUTGOING,
+              UserRole.BOT,
+            ); // Added senderRoleAtMoment
           } catch (logError) {
-              this.logger.error(`Failed to log outgoing error reply in assignRole: ${logError.message}`, logError.stack);
+            this.logger.error(
+              `Failed to log outgoing error reply in assignRole: ${logError.message}`,
+              logError.stack,
+            );
           }
         }
       }
@@ -395,23 +477,32 @@ export class TelegramBaseUpdate {
       const sentReply = await ctx.reply(replyText);
       if (sentReply) {
         try {
-            const botUser = await this.userManagementService.getBotUserEntity();
-            await this.messageLoggingService.logMessage(sentReply, botUser, chat, MessageDirection.OUTGOING, UserRole.BOT); // Added senderRoleAtMoment
+          const botUser = await this.userManagementService.getBotUserEntity();
+          await this.messageLoggingService.logMessage(
+            sentReply,
+            botUser,
+            chat,
+            MessageDirection.OUTGOING,
+            UserRole.BOT,
+          ); // Added senderRoleAtMoment
         } catch (logError) {
-            this.logger.error(`Failed to log outgoing error reply in assignRole: ${logError.message}`, logError.stack);
+          this.logger.error(
+            `Failed to log outgoing error reply in assignRole: ${logError.message}`,
+            logError.stack,
+          );
         }
       }
     }
   }
 
   @Command('create_kpi')
-  @UseGuards(AuthenticatedGuard, RolesGuard) 
-  @Roles(UserRole.ADMIN) 
+  @UseGuards(AuthenticatedGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   async onCreateKpi(
-    @Ctx() ctx: TelegrafContext, 
-    @Message('text') messageText: string, 
+    @Ctx() ctx: TelegrafContext,
+    @Message('text') messageText: string,
     @User() adminUser: UserEntity,
-    @Chat() chat: TelegrafChat, 
+    @Chat() chat: TelegrafChat,
   ) {
     const telegramMessage = ctx.message as TelegrafMessage;
     if (!telegramMessage) {
@@ -420,7 +511,11 @@ export class TelegramBaseUpdate {
     }
 
     try {
-      const { userChatRole: adminUserChatRole } = await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(adminUser, chat);
+      const { userChatRole: adminUserChatRole } =
+        await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(
+          adminUser,
+          chat,
+        );
 
       // Log incoming /create_kpi command
       await this.messageLoggingService.logMessage(
@@ -435,14 +530,24 @@ export class TelegramBaseUpdate {
       const kpiArgs = commandParts.slice(1); // Remove /create_kpi part
 
       if (kpiArgs.length < 3 || kpiArgs.length > 4) {
-        const replyText = 'Noto\'g\'ri format. Foydalanish: /create_kpi <nomi> <metrika_nomi> <metrika_birligi> [tavsifi]';
+        const replyText =
+          "Noto'g'ri format. Foydalanish: /create_kpi <nomi> <metrika_nomi> <metrika_birligi> [tavsifi]";
         const sentReply = await ctx.reply(replyText);
         if (sentReply) {
           try {
-              const botUser = await this.userManagementService.getBotUserEntity();
-              await this.messageLoggingService.logMessage(sentReply, botUser, chat, MessageDirection.OUTGOING, UserRole.BOT); // Added senderRoleAtMoment
+            const botUser = await this.userManagementService.getBotUserEntity();
+            await this.messageLoggingService.logMessage(
+              sentReply,
+              botUser,
+              chat,
+              MessageDirection.OUTGOING,
+              UserRole.BOT,
+            ); // Added senderRoleAtMoment
           } catch (logError) {
-              this.logger.error(`Failed to log outgoing reply in onCreateKpi (usage): ${logError.message}`, logError.stack);
+            this.logger.error(
+              `Failed to log outgoing reply in onCreateKpi (usage): ${logError.message}`,
+              logError.stack,
+            );
           }
         }
         return;
@@ -460,16 +565,25 @@ export class TelegramBaseUpdate {
 
         const newKpi = await this.kpiDefinitionService.createKpiDefinition(
           createDto,
-          adminUser, 
+          adminUser,
         );
         const replyText = `KPI "${newKpi.name}" (ID: ${newKpi.id}) muvaffaqiyatli yaratildi va tasdiqlanishi kutilmoqda.`;
         const sentReply = await ctx.reply(replyText);
         if (sentReply) {
           try {
-              const botUser = await this.userManagementService.getBotUserEntity();
-              await this.messageLoggingService.logMessage(sentReply, botUser, chat, MessageDirection.OUTGOING, UserRole.BOT); // Added senderRoleAtMoment
+            const botUser = await this.userManagementService.getBotUserEntity();
+            await this.messageLoggingService.logMessage(
+              sentReply,
+              botUser,
+              chat,
+              MessageDirection.OUTGOING,
+              UserRole.BOT,
+            ); // Added senderRoleAtMoment
           } catch (logError) {
-              this.logger.error(`Failed to log outgoing reply in onCreateKpi (success): ${logError.message}`, logError.stack);
+            this.logger.error(
+              `Failed to log outgoing reply in onCreateKpi (success): ${logError.message}`,
+              logError.stack,
+            );
           }
         }
       } catch (error) {
@@ -479,24 +593,47 @@ export class TelegramBaseUpdate {
         const sentReply = await ctx.reply(replyText);
         if (sentReply) {
           try {
-              const botUser = await this.userManagementService.getBotUserEntity();
-              await this.messageLoggingService.logMessage(sentReply, botUser, chat, MessageDirection.OUTGOING, UserRole.BOT); // Added senderRoleAtMoment
+            const botUser = await this.userManagementService.getBotUserEntity();
+            await this.messageLoggingService.logMessage(
+              sentReply,
+              botUser,
+              chat,
+              MessageDirection.OUTGOING,
+              UserRole.BOT,
+            ); // Added senderRoleAtMoment
           } catch (logError) {
-              this.logger.error(`Failed to log outgoing error reply in onCreateKpi (catch): ${logError.message}`, logError.stack);
+            this.logger.error(
+              `Failed to log outgoing error reply in onCreateKpi (catch): ${logError.message}`,
+              logError.stack,
+            );
           }
         }
       }
-    } catch (error) { // Outer catch for findOrCreateUserWithDefaultRoleInChat or initial logging
+    } catch (error) {
+      // Outer catch for findOrCreateUserWithDefaultRoleInChat or initial logging
       const err = error as TelegramError;
-      this.logger.error(`Critical error in onCreateKpi setup: ${err.message}`, err.stack);
-      const replyText = 'KPI yaratish buyrug\'ini qayta ishlashda tizimli xatolik.';
+      this.logger.error(
+        `Critical error in onCreateKpi setup: ${err.message}`,
+        err.stack,
+      );
+      const replyText =
+        "KPI yaratish buyrug'ini qayta ishlashda tizimli xatolik.";
       const sentReply = await ctx.reply(replyText);
       if (sentReply) {
         try {
-            const botUser = await this.userManagementService.getBotUserEntity();
-            await this.messageLoggingService.logMessage(sentReply, botUser, chat, MessageDirection.OUTGOING, UserRole.BOT); // Added senderRoleAtMoment
+          const botUser = await this.userManagementService.getBotUserEntity();
+          await this.messageLoggingService.logMessage(
+            sentReply,
+            botUser,
+            chat,
+            MessageDirection.OUTGOING,
+            UserRole.BOT,
+          ); // Added senderRoleAtMoment
         } catch (logError) {
-            this.logger.error(`Failed to log outgoing critical error reply in onCreateKpi: ${logError.message}`, logError.stack);
+          this.logger.error(
+            `Failed to log outgoing critical error reply in onCreateKpi: ${logError.message}`,
+            logError.stack,
+          );
         }
       }
     }
@@ -506,7 +643,7 @@ export class TelegramBaseUpdate {
   // @UseGuards(AuthenticatedGuard)
   // async onMessage(
   //   @Ctx() ctx: TelegrafContext,
-  //   @User() user: UserEntity, 
+  //   @User() user: UserEntity,
   // ): Promise<void> {
   //   const message = ctx.message as TelegrafMessage; // Type assertion
   //   const sender = ctx.from; // Bu Telegraf User
@@ -520,7 +657,7 @@ export class TelegramBaseUpdate {
   //   // Ensure user and their role in this chat are known first
   //   try {
   //     const { userChatRole, isNewUser, isNewChatRole } = await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(user, chat);
-      
+
   //     if (isNewUser) {
   //       this.logger.log(`New user ${user.telegramId} processed in onMessage.`);
   //     }
@@ -530,9 +667,9 @@ export class TelegramBaseUpdate {
 
   //     // Log the incoming message to the database
   //     await this.messageLoggingService.logMessage(
-  //       message, 
-  //       user,    
-  //       chat,    
+  //       message,
+  //       user,
+  //       chat,
   //       MessageDirection.INCOMING,
   //       userChatRole.role, // Added senderRoleAtMoment
   //     );
@@ -576,22 +713,28 @@ export class TelegramBaseUpdate {
       `Received voice message from TGID: ${user.telegramId} in chat ${chat.id}. Duration: ${message.voice.duration}s, File ID: ${message.voice.file_id}`,
     );
 
-    const { userChatRole } = await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(user, chat);
+    const { userChatRole } =
+      await this.userManagementService.findOrCreateUserWithDefaultRoleInChat(
+        user,
+        chat,
+      );
 
     if (userChatRole) {
       const loggedMessage = await this.messageLoggingService.logMessage(
-        message, 
-        user, 
-        chat, 
-        MessageDirection.INCOMING, 
+        message,
+        user,
+        chat,
+        MessageDirection.INCOMING,
         userChatRole.role,
         undefined, // explicitTextContent - voice messages usually don't have it initially
         false, // isQuestionOverride
-        'VOICE' // attachmentType
+        'VOICE', // attachmentType
       );
 
       if (loggedMessage) {
-        this.logger.log(`Voice message (Log ID: ${loggedMessage.id}) logged with PENDING STT status.`);
+        this.logger.log(
+          `Voice message (Log ID: ${loggedMessage.id}) logged with PENDING STT status.`,
+        );
         try {
           await this.aiQueueService.addSttJob({
             audioFileId: message.voice.file_id,
@@ -600,9 +743,15 @@ export class TelegramBaseUpdate {
             telegramUserId: user.telegramId,
           });
         } catch (error) {
-          this.logger.error(`Failed to add STT job for messageLogId ${loggedMessage.id}: ${error.message}`, error.stack);
+          this.logger.error(
+            `Failed to add STT job for messageLogId ${loggedMessage.id}: ${error.message}`,
+            error.stack,
+          );
           // Agar navbatga qo'shishda xatolik bo'lsa, message_log dagi stt_status ni 'FAILED' qilishimiz mumkin
-          await this.messageLoggingService.updateMessageLogSttStatus(loggedMessage.id, SttStatusEnum.FAILED_QUEUE); // Enum ishlatildi
+          await this.messageLoggingService.updateMessageLogSttStatus(
+            loggedMessage.id,
+            SttStatusEnum.FAILED_QUEUE,
+          ); // Enum ishlatildi
         }
       } else {
         this.logger.error('Failed to log voice message.');
@@ -610,6 +759,69 @@ export class TelegramBaseUpdate {
     } else {
       this.logger.error(
         `Failed to get or create user/role for TGID: ${user.telegramId} in chat ${chat.id} for voice message`,
+      );
+    }
+  }
+
+  @On('text')
+  async onTextMessage(
+    @Ctx() ctx: TelegrafContext,
+    @User() user: UserEntity,
+    @Chat() chat: TelegrafChat,
+    @Message('text') text: string,
+  ): Promise<void> {
+    try {
+      // Skip commands
+      if (text.startsWith('/')) {
+        return;
+      }
+
+      // Get user's role in chat
+      const userChatRole = await this.userManagementService.getUserRoleInChat(
+        user,
+        chat.id,
+      );
+
+      // Log the message
+      await this.messageLoggingService.logMessage(
+        ctx.message as TelegrafMessage,
+        user,
+        chat,
+        MessageDirection.INCOMING,
+        userChatRole,
+      );
+
+      // If it's a group chat and user is not admin/supervisor/nazoratchi, treat as a question
+      if (
+        chat.type !== 'private' &&
+        userChatRole !== UserRole.ADMIN &&
+        userChatRole !== UserRole.SUPERVISOR &&
+        userChatRole !== UserRole.NAZORATCHI
+      ) {
+        await this.questionMonitoringService.processNewQuestion(
+          text,
+          chat.id,
+          new Date(),
+        );
+      }
+
+      // If it's a reply to a message, check if it's an answer to a pending question
+      const message = ctx.message as any; // Type assertion for now
+      if (
+        message.reply_to_message &&
+        typeof message.reply_to_message === 'object' &&
+        'text' in message.reply_to_message
+      ) {
+        await this.questionMonitoringService.handleResponse(
+          message.reply_to_message.text,
+          user,
+          chat.id,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error processing text message: ${error.message}`,
+        error.stack,
       );
     }
   }

@@ -1,9 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Message as TelegrafMessage, Chat as TelegrafChat } from 'telegraf/typings/core/types/typegram';
+import {
+  Message as TelegrafMessage,
+  Chat as TelegrafChat,
+} from 'telegraf/typings/core/types/typegram';
 import { ConfigService } from '@nestjs/config';
-import { MessageLogEntity, MessageDirection } from './entities/message-log.entity';
+import {
+  MessageLogEntity,
+  MessageDirection,
+} from './entities/message-log.entity';
 import { UserEntity } from '../user-management/entities/user.entity';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { SttStatusEnum } from '../ai-processing/enums/stt-status.enum';
@@ -30,11 +36,14 @@ export class MessageLoggingService {
     attachmentType?: string,
   ): Promise<MessageLogEntity | null> {
     if (!telegramMessage || !telegramMessage.message_id) {
-      this.logger.warn('logMessage called with null, undefined telegramMessage object, or message without ID. Skipping.');
+      this.logger.warn(
+        'logMessage called with null, undefined telegramMessage object, or message without ID. Skipping.',
+      );
       return null;
     }
 
-    let messageText: string | null = explicitTextContent !== undefined ? explicitTextContent : null;
+    let messageText: string | null =
+      explicitTextContent !== undefined ? explicitTextContent : null;
     let fileId: string | null = null;
     let fileUniqueId: string | null = null;
     let duration: number | null = null;
@@ -63,11 +72,18 @@ export class MessageLoggingService {
         attachmentType = 'DOCUMENT';
       }
     }
-    if ('caption' in telegramMessage && telegramMessage.caption && !messageText) {
+    if (
+      'caption' in telegramMessage &&
+      telegramMessage.caption &&
+      !messageText
+    ) {
       messageText = telegramMessage.caption;
     }
 
-    const sttStatus = attachmentType === 'VOICE' && fileId ? SttStatusEnum.PENDING : SttStatusEnum.NOT_APPLICABLE;
+    const sttStatus =
+      attachmentType === 'VOICE' && fileId
+        ? SttStatusEnum.PENDING
+        : SttStatusEnum.NOT_APPLICABLE;
 
     const messageLogData: Partial<MessageLogEntity> = {
       telegramMessageId: telegramMessage.message_id,
@@ -93,7 +109,7 @@ export class MessageLoggingService {
     try {
       const savedMessageLog = await this.messageLogRepository.save(messageLog);
       this.logger.log(
-        `Logged ${direction} message from user ${user?.telegramId || 'bot'} (Role: ${senderRole || 'N/A'}) in chat ${chat.id}. Text: "${messageText ? (messageText.length > 50 ? messageText.substring(0, 50) + '...' : messageText) : (attachmentType ? '['+attachmentType+']' : '[no text/media]')}". DB ID: ${savedMessageLog.id}. IsQ: ${savedMessageLog.isQuestion}`,
+        `Logged ${direction} message from user ${user?.telegramId || 'bot'} (Role: ${senderRole || 'N/A'}) in chat ${chat.id}. Text: "${messageText ? (messageText.length > 50 ? messageText.substring(0, 50) + '...' : messageText) : attachmentType ? '[' + attachmentType + ']' : '[no text/media]'}". DB ID: ${savedMessageLog.id}. IsQ: ${savedMessageLog.isQuestion}`,
       );
 
       return savedMessageLog;
@@ -106,28 +122,47 @@ export class MessageLoggingService {
     }
   }
 
-  async updateMessageLogSttStatus(messageLogId: string, newStatus: SttStatusEnum): Promise<MessageLogEntity | null> {
+  async updateMessageLogSttStatus(
+    messageLogId: string,
+    newStatus: SttStatusEnum,
+  ): Promise<MessageLogEntity | null> {
     try {
-      const messageLog = await this.messageLogRepository.findOne({ where: { id: messageLogId } });
+      const messageLog = await this.messageLogRepository.findOne({
+        where: { id: messageLogId },
+      });
       if (!messageLog) {
-        this.logger.warn(`MessageLogEntity not found with ID: ${messageLogId} for STT status update.`);
+        this.logger.warn(
+          `MessageLogEntity not found with ID: ${messageLogId} for STT status update.`,
+        );
         return null;
       }
       messageLog.sttStatus = newStatus;
       const updatedLog = await this.messageLogRepository.save(messageLog);
-      this.logger.log(`Updated STT status to '${newStatus}' for MessageLog ID: ${messageLogId}`);
+      this.logger.log(
+        `Updated STT status to '${newStatus}' for MessageLog ID: ${messageLogId}`,
+      );
       return updatedLog;
     } catch (error) {
-      this.logger.error(`Error updating STT status for MessageLog ID ${messageLogId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error updating STT status for MessageLog ID ${messageLogId}: ${error.message}`,
+        error.stack,
+      );
       return null;
     }
   }
 
-  async updateMessageLogWithTranscription(messageLogId: string, transcribedText: string): Promise<MessageLogEntity | null> {
+  async updateMessageLogWithTranscription(
+    messageLogId: string,
+    transcribedText: string,
+  ): Promise<MessageLogEntity | null> {
     try {
-      const messageLog = await this.messageLogRepository.findOne({ where: { id: messageLogId } });
+      const messageLog = await this.messageLogRepository.findOne({
+        where: { id: messageLogId },
+      });
       if (!messageLog) {
-        this.logger.warn(`MessageLogEntity not found with ID: ${messageLogId} for transcription update.`);
+        this.logger.warn(
+          `MessageLogEntity not found with ID: ${messageLogId} for transcription update.`,
+        );
         return null;
       }
       messageLog.transcribedText = transcribedText;
@@ -136,27 +171,44 @@ export class MessageLoggingService {
       }
       messageLog.sttStatus = SttStatusEnum.COMPLETED;
       const updatedLog = await this.messageLogRepository.save(messageLog);
-      this.logger.log(`Updated MessageLog ID: ${messageLogId} with transcription and STT status COMPLETED.`);
+      this.logger.log(
+        `Updated MessageLog ID: ${messageLogId} with transcription and STT status COMPLETED.`,
+      );
       return updatedLog;
     } catch (error) {
-      this.logger.error(`Error updating MessageLog ID ${messageLogId} with transcription: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error updating MessageLog ID ${messageLogId} with transcription: ${error.message}`,
+        error.stack,
+      );
       return null;
     }
   }
 
-  async updateMessageLogLlmStatus(messageLogId: string, newStatus: LlmAnalysisStatusEnum): Promise<MessageLogEntity | null> {
+  async updateMessageLogLlmStatus(
+    messageLogId: string,
+    newStatus: LlmAnalysisStatusEnum,
+  ): Promise<MessageLogEntity | null> {
     try {
-      const messageLog = await this.messageLogRepository.findOne({ where: { id: messageLogId } });
+      const messageLog = await this.messageLogRepository.findOne({
+        where: { id: messageLogId },
+      });
       if (!messageLog) {
-        this.logger.warn(`MessageLogEntity not found with ID: ${messageLogId} for LLM status update.`);
+        this.logger.warn(
+          `MessageLogEntity not found with ID: ${messageLogId} for LLM status update.`,
+        );
         return null;
       }
       messageLog.llmAnalysisStatus = newStatus;
       const updatedLog = await this.messageLogRepository.save(messageLog);
-      this.logger.log(`Updated LLM analysis status to '${newStatus}' for MessageLog ID: ${messageLogId}`);
+      this.logger.log(
+        `Updated LLM analysis status to '${newStatus}' for MessageLog ID: ${messageLogId}`,
+      );
       return updatedLog;
     } catch (error) {
-      this.logger.error(`Error updating LLM status for MessageLog ID ${messageLogId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error updating LLM status for MessageLog ID ${messageLogId}: ${error.message}`,
+        error.stack,
+      );
       return null;
     }
   }
@@ -166,12 +218,16 @@ export class MessageLoggingService {
     promptType: string,
     prompt: string,
     rawResponse: string,
-    structuredResponse?: any
+    structuredResponse?: any,
   ): Promise<MessageLogEntity | null> {
     try {
-      const messageLog = await this.messageLogRepository.findOne({ where: { id: messageLogId } });
+      const messageLog = await this.messageLogRepository.findOne({
+        where: { id: messageLogId },
+      });
       if (!messageLog) {
-        this.logger.warn(`MessageLogEntity not found with ID: ${messageLogId} for LLM result update.`);
+        this.logger.warn(
+          `MessageLogEntity not found with ID: ${messageLogId} for LLM result update.`,
+        );
         return null;
       }
       messageLog.llmPromptType = promptType;
@@ -182,10 +238,15 @@ export class MessageLoggingService {
       }
       messageLog.llmAnalysisStatus = LlmAnalysisStatusEnum.COMPLETED;
       const updatedLog = await this.messageLogRepository.save(messageLog);
-      this.logger.log(`Updated MessageLog ID: ${messageLogId} with LLM analysis result (type: ${promptType}), status COMPLETED.`);
+      this.logger.log(
+        `Updated MessageLog ID: ${messageLogId} with LLM analysis result (type: ${promptType}), status COMPLETED.`,
+      );
       return updatedLog;
     } catch (error) {
-      this.logger.error(`Error updating MessageLog ID ${messageLogId} with LLM result: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error updating MessageLog ID ${messageLogId} with LLM result: ${error.message}`,
+        error.stack,
+      );
       return null;
     }
   }
@@ -203,7 +264,10 @@ export class MessageLoggingService {
       });
       return messageLog;
     } catch (error) {
-      this.logger.error(`Error finding message log by Telegram ID ${telegramMessageId} and chat ID ${chatId}: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error finding message log by Telegram ID ${telegramMessageId} and chat ID ${chatId}: ${error.message}`,
+        error.stack,
+      );
       return null;
     }
   }

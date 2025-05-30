@@ -1,13 +1,21 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+} from 'typeorm';
 import { UserEntity } from '../../user-management/entities/user.entity';
 import { ReportTypeEntity } from './report-type.entity';
 
 export enum ReportStatus {
   SUBMITTED = 'SUBMITTED', // Topshirildi (muddat tekshirilmagan hali)
-  ON_TIME = 'ON_TIME',     // O'z vaqtida topshirildi
-  LATE = 'LATE',         // Kechikib topshirildi
-  APPROVED = 'APPROVED',   // Tasdiqlandi (masalan, SUPERVISOR tomonidan)
-  REJECTED = 'REJECTED',   // Rad etildi
+  ON_TIME = 'ON_TIME', // O'z vaqtida topshirildi
+  LATE = 'LATE', // Kechikib topshirildi
+  APPROVED = 'APPROVED', // Tasdiqlandi (masalan, SUPERVISOR tomonidan)
+  REJECTED = 'REJECTED', // Rad etildi
 }
 
 @Entity('report_logs')

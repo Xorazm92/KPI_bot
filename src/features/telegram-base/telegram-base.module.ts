@@ -13,10 +13,12 @@ import { UserSessionMiddleware } from '../../common/middlewares/user-session.mid
 import { AiProcessingModule } from '../ai-processing/ai-processing.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserSessionEntity } from '../user-management/entities/user-session.entity';
+import { QuestionMonitoringModule } from '../question-monitoring/question-monitoring.module';
 
 @Module({
   imports: [
     ConfigModule,
+    QuestionMonitoringModule,
     TelegrafModule.forRootAsync({
       imports: [
         ConfigModule,
@@ -24,16 +26,24 @@ import { UserSessionEntity } from '../user-management/entities/user-session.enti
         forwardRef(() => TelegramBaseModule),
       ],
       inject: [ConfigService, UserManagementService],
-      useFactory: async (configService: ConfigService, userManagementService: UserManagementService) => {
+      useFactory: async (
+        configService: ConfigService,
+        userManagementService: UserManagementService,
+      ) => {
         const logger = new Logger('TelegramBaseModuleFactory');
         const token = configService.get<string>('telegram.botToken');
 
         if (!token) {
-          logger.error('[TelegramBaseModuleFactory] CRITICAL: Telegram Bot Token is UNDEFINED in ConfigService. Application cannot start.');
-          throw new Error('Telegram Bot Token is missing. Check your .env file or environment variables.');
+          logger.error(
+            '[TelegramBaseModuleFactory] CRITICAL: Telegram Bot Token is UNDEFINED in ConfigService. Application cannot start.',
+          );
+          throw new Error(
+            'Telegram Bot Token is missing. Check your .env file or environment variables.',
+          );
         }
 
-        const botName = configService.get<string>('telegram.botName') || 'FincoKpiBot';
+        const botName =
+          configService.get<string>('telegram.botName') || 'FincoKpiBot';
 
         const agent = new HttpsAgentStandard({
           keepAlive: true,
@@ -41,17 +51,41 @@ import { UserSessionEntity } from '../user-management/entities/user-session.enti
           family: 4,
         });
 
-        logger.log(`[TelegramBaseModuleFactory] Created HttpsAgent with family: 4`);
+        logger.log(
+          `[TelegramBaseModuleFactory] Created HttpsAgent with family: 4`,
+        );
 
-        const sessionMiddleware = new TelegrafSessionLocal({ database: 'session_db.json' }).middleware();
-        const userSessionMiddlewareInstance = new UserSessionMiddleware(userManagementService);
+        const sessionMiddleware = new TelegrafSessionLocal({
+          database: 'session_db.json',
+        }).middleware();
+        const userSessionMiddlewareInstance = new UserSessionMiddleware(
+          userManagementService,
+        );
+
+        // Fallback middleware to ensure userEntity is always in session
+        const ensureUserEntityMiddleware = async (ctx, next) => {
+          if (!ctx.session) {
+            ctx.session = {};
+          }
+          if (!ctx.session.userEntity && ctx.from) {
+            const user = await userManagementService.getUserByTelegramId(ctx.from.id);
+            if (user) {
+              ctx.session.userEntity = user;
+              console.log(`[SessionFallback] userEntity written to session for ${user.telegramId}`);
+            } else {
+              console.warn(`[SessionFallback] userEntity NOT found for telegramId: ${ctx.from.id}`);
+            }
+          }
+          return next();
+        };
 
         const telegrafModuleOptions = {
           token,
           botName,
           middlewares: [
-            sessionMiddleware, 
-            (ctx, next) => userSessionMiddlewareInstance.use(ctx, next)
+            sessionMiddleware,
+            ensureUserEntityMiddleware,
+            (ctx, next) => userSessionMiddlewareInstance.use(ctx, next),
           ],
           options: {
             handlerTimeout: 30000,
@@ -63,12 +97,21 @@ import { UserSessionEntity } from '../user-management/entities/user-session.enti
           },
         };
 
-        logger.log(`[TelegramBaseModuleFactory] Initializing Telegraf with token: Token ${token ? 'Present' : 'MISSING'} (first 10 chars: ${token.substring(0, 10)}...)`);
-        logger.log('[TelegramBaseModuleFactory] Telegraf module options being returned:', JSON.stringify(telegrafModuleOptions, (key, value) => {
-          if (key === 'agent') return '[HttpsAgent instance]';
-          if (typeof value === 'function') return '[Function]';
-          return value;
-        }, 2));
+        logger.log(
+          `[TelegramBaseModuleFactory] Initializing Telegraf with token: Token ${token ? 'Present' : 'MISSING'} (first 10 chars: ${token.substring(0, 10)}...)`,
+        );
+        logger.log(
+          '[TelegramBaseModuleFactory] Telegraf module options being returned:',
+          JSON.stringify(
+            telegrafModuleOptions,
+            (key, value) => {
+              if (key === 'agent') return '[HttpsAgent instance]';
+              if (typeof value === 'function') return '[Function]';
+              return value;
+            },
+            2,
+          ),
+        );
 
         return telegrafModuleOptions;
       },
@@ -78,8 +121,14 @@ import { UserSessionEntity } from '../user-management/entities/user-session.enti
     forwardRef(() => MessageLoggingModule),
     KpiMonitoringModule,
     AiProcessingModule,
+    QuestionMonitoringModule,
   ],
-  providers: [TelegramBaseService, TelegramBaseUpdate, UserSessionMiddleware],
+  providers: [
+    UserSessionMiddleware,
+    TelegramBaseService,
+    TelegramBaseUpdate,
+    QuestionMonitoringModule,
+  ],
   exports: [TelegramBaseService],
 })
 export class TelegramBaseModule {}

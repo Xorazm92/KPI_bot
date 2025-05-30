@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  Index,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { UserRole } from '../../../common/enums/user-role.enum';
 
 export enum ReportFrequency {
@@ -25,13 +32,17 @@ export class ReportTypeEntity {
   @Column({ type: 'text', nullable: true })
   description?: string;
 
-  @Column({ type: 'enum', enum: ReportFrequency, default: ReportFrequency.ADHOC })
+  @Column({
+    type: 'enum',
+    enum: ReportFrequency,
+    default: ReportFrequency.ADHOC,
+  })
   frequency: ReportFrequency;
 
   // Muddat qoidalari (masalan, 'MONTHLY' uchun har oyning 5-sanasi)
   // Buni yanada murakkablashtirish mumkin, hozircha oddiy matn
   @Column({ type: 'varchar', length: 255, nullable: true })
-  deadlineRule?: string; 
+  deadlineRule?: string;
 
   // Mas'ul rollar (qaysi rollar bu hisobotni topshirishi mumkin)
   @Column({ type: 'enum', enum: UserRole, array: true, nullable: true })

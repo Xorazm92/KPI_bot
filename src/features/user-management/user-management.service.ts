@@ -13,9 +13,7 @@ import { UserChatRoleEntity } from './entities/user-chat-role.entity';
 import { UserRole } from '../../common/enums/user-role.enum';
 import { ConfigService } from '@nestjs/config';
 import { TelegramBaseService } from '../telegram-base/telegram-base.service';
-import {
-  Chat as TelegrafChat,
-} from 'telegraf/types';
+import { Chat as TelegrafChat } from 'telegraf/types';
 
 interface TelegramError extends Error {
   message: string;
@@ -54,7 +52,10 @@ export class UserManagementService {
   }
 
   async getUserByTelegramId(telegramId: number): Promise<UserEntity | null> {
-    return this.userRepository.findOne({ where: { telegramId }, relations: ['chatRoles'] });
+    return this.userRepository.findOne({
+      where: { telegramId },
+      relations: ['chatRoles'],
+    });
   }
 
   async registerUser(userData: {
@@ -63,13 +64,17 @@ export class UserManagementService {
     firstName?: string;
     lastName?: string;
   }): Promise<UserEntity> {
-    this.logger.log(`Registering new user with Telegram ID: ${userData.telegramId}`);
-    const existingUser = await this.userRepository.findOne({ where: { telegramId: userData.telegramId } });
+    this.logger.log(
+      `Registering new user with Telegram ID: ${userData.telegramId}`,
+    );
+    const existingUser = await this.userRepository.findOne({
+      where: { telegramId: userData.telegramId },
+    });
     if (existingUser) {
-      this.logger.warn(`User with Telegram ID ${userData.telegramId} already exists.`);
+      this.logger.warn(
+        `User with Telegram ID ${userData.telegramId} already exists.`,
+      );
       existingUser.username = userData.username || existingUser.username;
-      existingUser.firstName = userData.firstName || existingUser.firstName;
-      existingUser.lastName = userData.lastName || existingUser.lastName;
       return this.userRepository.save(existingUser);
     }
 
@@ -99,12 +104,12 @@ export class UserManagementService {
       `Finding or creating chat role for user ${telegramId} (ID: ${passedUserEntity.id}) in chat ${chatId}`,
     );
 
-    let user = passedUserEntity;
-    let isNewUser = false;
+    const user = passedUserEntity;
+    const isNewUser = false;
 
     let userChatRole = await this.userChatRoleRepository.findOne({
       where: { userId: user.id, chatId },
-      relations: ['user']
+      relations: ['user'],
     });
 
     let isNewChatRole = false;
@@ -112,13 +117,16 @@ export class UserManagementService {
       this.logger.log(
         `User ${user.id} role in chat ${chatId} not found, creating new role.`,
       );
-      const role = user.telegramId === this.adminTelegramId ? UserRole.ADMIN : defaultRoleIfNotAdmin;
+      const role =
+        user.telegramId === this.adminTelegramId
+          ? UserRole.ADMIN
+          : defaultRoleIfNotAdmin;
       userChatRole = this.userChatRoleRepository.create({
         userId: user.id,
         chatId,
         role,
         chatType,
-        user: user
+        user: user,
       });
       await this.userChatRoleRepository.save(userChatRole);
       isNewChatRole = true;
@@ -132,7 +140,9 @@ export class UserManagementService {
       if (userChatRole.chatType !== chatType) {
         userChatRole.chatType = chatType;
         await this.userChatRoleRepository.save(userChatRole);
-        this.logger.log(`Chat type updated for user ${user.id} in chat ${chatId} to ${chatType}.`);
+        this.logger.log(
+          `Chat type updated for user ${user.id} in chat ${chatId} to ${chatType}.`,
+        );
       }
       if (!userChatRole.user) {
         userChatRole.user = user;
@@ -147,7 +157,7 @@ export class UserManagementService {
     user: UserEntity,
     chatId: number,
     role: UserRole,
-    chatType: string
+    chatType: string,
   ): Promise<UserChatRoleEntity> {
     let userChatRole = await this.userChatRoleRepository.findOne({
       where: { userId: user.id, chatId },
@@ -162,7 +172,7 @@ export class UserManagementService {
         chatId,
         role,
         chatType,
-        user: user
+        user: user,
       });
     }
     return this.userChatRoleRepository.save(userChatRole);
@@ -174,70 +184,134 @@ export class UserManagementService {
     role: UserRole,
     assigner: UserEntity,
   ): Promise<UserEntity | null> {
-    this.logger.log(`Attempting to assign role ${role} to user ${targetIdentifier} in chat ${chatId} by ${assigner.telegramId}`);
+    this.logger.log(
+      `Attempting to assign role ${role} to user ${targetIdentifier} in chat ${chatId} by ${assigner.telegramId}`,
+    );
     if (chatId === undefined) {
-        throw new Error('Chat ID must be provided to assign a chat-specific role.');
+      throw new Error(
+        'Chat ID must be provided to assign a chat-specific role.',
+      );
     }
 
     let targetUser: UserEntity | null = null;
     if (isNaN(parseInt(targetIdentifier))) {
-      targetUser = await this.userRepository.findOne({ where: { username: targetIdentifier } });
+      targetUser = await this.userRepository.findOne({
+        where: { username: targetIdentifier },
+      });
     } else {
-      targetUser = await this.userRepository.findOne({ where: { telegramId: parseInt(targetIdentifier) } });
+      targetUser = await this.userRepository.findOne({
+        where: { telegramId: parseInt(targetIdentifier) },
+      });
     }
 
     if (!targetUser) {
-      throw new NotFoundException(`Foydalanuvchi (identifikator: ${targetIdentifier}) topilmadi.`);
+      throw new NotFoundException(
+        `Foydalanuvchi (identifikator: ${targetIdentifier}) topilmadi.`,
+      );
     }
 
-    const assignerChatRole = await this.userChatRoleRepository.findOne({where: {userId: assigner.id, chatId: chatId}});
-    
-    if (assigner.telegramId !== this.adminTelegramId && !(assignerChatRole?.role === UserRole.ADMIN && assignerChatRole.chatId === chatId) ) {
-        this.logger.warn(
-            `User ${assigner.telegramId} (Role in chat: ${assignerChatRole?.role}) ` +
-            `does not have permission to assign roles in chat ${chatId} or is not global admin.`
-        );
-        throw new ForbiddenException('Sizda rol tayinlash uchun ruxsat yo\'q.');
+    const assignerChatRole = await this.userChatRoleRepository.findOne({
+      where: { userId: assigner.id, chatId: chatId },
+    });
+
+    // Check if assigner has permission to assign roles
+    const canAssignRoles =
+      assigner.telegramId === this.adminTelegramId ||
+      (assignerChatRole &&
+        [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.NAZORATCHI].includes(
+          assignerChatRole.role,
+        ) &&
+        assignerChatRole.chatId === chatId);
+
+    if (!canAssignRoles) {
+      this.logger.warn(
+        `User ${assigner.telegramId} (Role in chat: ${assignerChatRole?.role}) ` +
+          `does not have permission to assign roles in chat ${chatId} or is not global admin.`,
+      );
+      throw new ForbiddenException("Sizda rol tayinlash uchun ruxsat yo'q.");
     }
 
-    if (role === UserRole.ADMIN && assigner.telegramId !== this.adminTelegramId) {
-        this.logger.warn(`User ${assigner.telegramId} attempted to assign ADMIN role to another user. Denied.`);
-        throw new ForbiddenException('Faqat bosh administrator boshqa foydalanuvchiga ADMIN rolini tayinlashi mumkin.');
+    // Only global admin can assign ADMIN role
+    if (
+      role === UserRole.ADMIN &&
+      assigner.telegramId !== this.adminTelegramId
+    ) {
+      this.logger.warn(
+        `User ${assigner.telegramId} attempted to assign ADMIN role to another user. Denied.`,
+      );
+      throw new ForbiddenException(
+        'Faqat bosh administrator boshqa foydalanuvchiga ADMIN rolini tayinlashi mumkin.',
+      );
     }
-    
-    if (role === UserRole.ADMIN && targetUser.telegramId === this.adminTelegramId && assigner.telegramId !== this.adminTelegramId) {
-        this.logger.warn(
-            `Attempt to assign ADMIN role to the bot owner (ID: ${this.adminTelegramId}) by ${assigner.telegramId}. Denied.`
-        );
-        throw new ForbiddenException('Bot egasiga ADMIN rolini boshqalar tayinlay olmaydi.');
+
+    // Only global admin can modify bot owner's admin status
+    if (
+      role === UserRole.ADMIN &&
+      targetUser.telegramId === this.adminTelegramId &&
+      assigner.telegramId !== this.adminTelegramId
+    ) {
+      this.logger.warn(
+        `Attempt to assign ADMIN role to the bot owner (ID: ${this.adminTelegramId}) by ${assigner.telegramId}. Denied.`,
+      );
+      throw new ForbiddenException(
+        'Bot egasiga ADMIN rolini boshqalar tayinlay olmaydi.',
+      );
+    }
+
+    // Check if assigner has permission to assign the requested role
+    if (assignerChatRole && assigner.telegramId !== this.adminTelegramId) {
+      const assignerRole = assignerChatRole.role;
+      const allowedRolesToAssign = [UserRole.AGENT, UserRole.BANK_CLIENT];
+
+      if (
+        assignerRole === UserRole.SUPERVISOR ||
+        assignerRole === UserRole.NAZORATCHI
+      ) {
+        if (!allowedRolesToAssign.includes(role)) {
+          this.logger.warn(
+            `User ${assigner.telegramId} (${assignerRole}) attempted to assign role ${role} which is not allowed.`,
+          );
+          throw new ForbiddenException(
+            `Siz faqat ${allowedRolesToAssign.join(' yoki ')} rollarini tayinlashingiz mumkin.`,
+          );
+        }
+      }
     }
 
     let chatType = assignerChatRole?.chatType; // Default to assigner's current chat type
-    let chatInfo: Awaited<ReturnType<TelegramBaseService['getChatInfo']>> | null = null;
+    let chatInfo: Awaited<
+      ReturnType<TelegramBaseService['getChatInfo']>
+    > | null = null;
 
     if (!chatType) {
-        try {
-            chatInfo = await this.telegramService.getChatInfo(chatId);
-            chatType = chatInfo.type;
-        } catch (e) {
-            this.logger.error(`Could not fetch chat type for chat ${chatId}, defaulting to 'private'`, e);
-            chatType = 'private';
-        }
+      try {
+        chatInfo = await this.telegramService.getChatInfo(chatId);
+        chatType = chatInfo.type;
+      } catch (e) {
+        this.logger.error(
+          `Could not fetch chat type for chat ${chatId}, defaulting to 'private'`,
+          e,
+        );
+        chatType = 'private';
+      }
     }
 
     await this.setChatRole(targetUser, chatId, role, chatType);
-    
+
     try {
       await this.telegramService.sendMessage(
         targetUser.telegramId,
-        `Sizga "${chatType === 'private' ? 'shaxsiy' : ((chatInfo && 'title' in chatInfo && chatInfo.title) ? chatInfo.title : chatId)}" chatida "${assigner.firstName || assigner.username}" tomonidan "${role}" roli tayinlandi.`,
+        `Sizga "${chatType === 'private' ? 'shaxsiy' : chatInfo && 'title' in chatInfo && chatInfo.title ? chatInfo.title : chatId}" chatida "${assigner.firstName || assigner.username}" tomonidan "${role}" roli tayinlandi.`,
       );
     } catch (error) {
       this.logger.error(
         `Failed to notify user ${targetUser.telegramId} about role assignment: ${error.message}`,
       );
     }
-    return this.userRepository.findOne({where: {id: targetUser.id}, relations: ['chatRoles']});
+    return this.userRepository.findOne({
+      where: { id: targetUser.id },
+      relations: ['chatRoles'],
+    });
   }
 
   async getUserRoleInChat(
@@ -284,19 +358,23 @@ export class UserManagementService {
     });
 
     if (!botUser) {
-      this.logger.log(`Bot user with Telegram ID ${this.BOT_TELEGRAM_ID} not found, creating new one.`);
+      this.logger.log(
+        `Bot user with Telegram ID ${this.BOT_TELEGRAM_ID} not found, creating new one.`,
+      );
       const newBotData: Partial<UserEntity> = {
         telegramId: this.BOT_TELEGRAM_ID,
         username: this.BOT_USERNAME,
         firstName: this.BOT_FIRST_NAME,
         lastName: this.BOT_LAST_NAME,
         // Note: We are not assigning a default UserRole.BOT here directly to UserEntity
-        // as roles are managed via UserChatRoleEntity. 
+        // as roles are managed via UserChatRoleEntity.
         // The UserEntity for the bot primarily serves as an identifier.
       };
       botUser = this.userRepository.create(newBotData);
       await this.userRepository.save(botUser);
-      this.logger.log(`Bot user ${botUser.username} (ID: ${botUser.id}, TelegramID: ${botUser.telegramId}) created.`);
+      this.logger.log(
+        `Bot user ${botUser.username} (ID: ${botUser.id}, TelegramID: ${botUser.telegramId}) created.`,
+      );
     }
     return botUser;
   }

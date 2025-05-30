@@ -1,8 +1,9 @@
-// Placeholder for user-role.enum.ts
 export enum UserRole {
   ADMIN = 'ADMIN',
   SUPERVISOR = 'SUPERVISOR', // Nazoratchi (SI natijalarini tekshiradi, KPI sozlaydi)
-  AGENT = 'AGENT',         // Operator/Xodim (KPI bajaruvchi)
-  CLIENT = 'CLIENT',       // Mijoz (agar bot mijozlar bilan ham ishlasa)
-  BOT = 'BOT',             // Botning o'zi uchun (masalan, tizimli xabarlar)
+  NAZORATCHI = 'NAZORATCHI', // Nazoratchi (KPI nazoratchisi, hisobotlarni tekshiruvchi)
+  AGENT = 'AGENT', // Operator/Xodim (KPI bajaruvchi)
+  BANK_CLIENT = 'BANK_CLIENT', // Bank operatsiyalari
+  CLIENT = 'CLIENT', // Mijoz (agar bot mijozlar bilan ham ishlasa)
+  BOT = 'BOT', // Botning o'zi uchun (masalan, tizimli xabarlar)
 }

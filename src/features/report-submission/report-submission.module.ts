@@ -8,10 +8,7 @@ import { UserManagementModule } from '../user-management/user-management.module'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      ReportTypeEntity,
-      ReportSubmissionEntity,
-    ]),
+    TypeOrmModule.forFeature([ReportTypeEntity, ReportSubmissionEntity]),
     UserManagementModule,
   ],
   providers: [ReportSubmissionService, ReportSubmissionUpdate],

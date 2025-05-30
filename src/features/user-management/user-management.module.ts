@@ -8,7 +8,11 @@ import { TelegramBaseModule } from '../telegram-base/telegram-base.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity, UserChatRoleEntity, UserSessionEntity]),
+    TypeOrmModule.forFeature([
+      UserEntity,
+      UserChatRoleEntity,
+      UserSessionEntity,
+    ]),
     forwardRef(() => TelegramBaseModule),
   ],
   providers: [UserManagementService],
