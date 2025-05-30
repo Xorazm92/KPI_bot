@@ -18,9 +18,9 @@ export interface QuestionAnalysisResult {
 export class QuestionMonitoringService {
   private readonly logger = new Logger(QuestionMonitoringService.name);
   private readonly responseTimes = {
-    [UserRole.AGENT]: 10 * 60 * 1000, // 10 daqiqa (BUXGALTER o'rniga AGENT)
-    [UserRole.BANK_CLIENT]: 5 * 60 * 1000, // 5 daqiqa (BANK_KLIENT o'rniga BANK_CLIENT)
-    [UserRole.NAZORATCHI]: 5 * 60 * 1000, // 5 daqiqa
+    [UserRole.ACCOUNTANT]: 10 * 60 * 1000,
+    [UserRole.BANK_CLIENT]: 10 * 60 * 1000,
+    [UserRole.SUPERVISOR]: 10 * 60 * 1000,
   };
 
   private pendingQuestions = new Map<
@@ -165,7 +165,7 @@ export class QuestionMonitoringService {
   ): Promise<QuestionAnalysisResult> {
     const prompt =
       `Savol: ${question}\n\n` +
-      `Ushbu savol qaysi rolni qiziqtiradi? (BUXGALTER/BANK_KLIENT/NAZORATCHI)\n` +
+      `Ushbu savol qaysi rolni qiziqtiradi? (ACCOUNTANT/BANK_CLIENT/SUPERVISOR)\n` +
       `Javob faqat JSON formatida bo'lsin.`;
 
     const response = await this.ollamaService.generateContent(prompt);
@@ -186,8 +186,8 @@ export class QuestionMonitoringService {
         aiRole = 'BANK_CLIENT';
       }
       if (!Object.values(UserRole).includes(aiRole)) {
-        this.logger.error(`AI noma'lum rol qaytardi: ${aiRole}, fallback: NAZORATCHI`);
-        aiRole = UserRole.NAZORATCHI;
+        this.logger.error(`AI noma'lum rol qaytardi: ${aiRole}, fallback: SUPERVISOR`);
+        aiRole = UserRole.SUPERVISOR;
       }
       return {
         savol: question,
@@ -203,7 +203,7 @@ export class QuestionMonitoringService {
       // Agar xatolik bo'lsa, standart qiymat qaytaramiz
       return {
         savol: question,
-        rol: UserRole.AGENT, // Standart rol
+        rol: UserRole.ACCOUNTANT, // Standart rol
         javob_vaqti: new Date().toISOString(),
         status: 'KUTILMOQDA',
       };

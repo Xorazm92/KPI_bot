@@ -353,7 +353,7 @@ export class TelegramBaseUpdate {
 
   @Command('assign_role')
   @UseGuards(AuthenticatedGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.NAZORATCHI)
+  @Roles(UserRole.ADMIN, UserRole.SUPERVISOR)
   async assignRole(
     @Ctx() ctx: TelegrafContext,
     @User() assigner: UserEntity,
@@ -795,8 +795,7 @@ export class TelegramBaseUpdate {
       if (
         chat.type !== 'private' &&
         userChatRole !== UserRole.ADMIN &&
-        userChatRole !== UserRole.SUPERVISOR &&
-        userChatRole !== UserRole.NAZORATCHI
+        userChatRole !== UserRole.SUPERVISOR
       ) {
         await this.questionMonitoringService.processNewQuestion(
           text,

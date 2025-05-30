@@ -70,7 +70,7 @@
               "userId": "5f4ef5d1-e922-4a2b-b3aa-0c01655f6545",
               "chatId": "8155488695",
               "chatType": "private",
-              "role": "NAZORATCHI",
+              "role": "SUPERVISOR",
               "chatTitle": null
             }
           ]
@@ -148,7 +148,7 @@
               "userId": "5f4ef5d1-e922-4a2b-b3aa-0c01655f6545",
               "chatId": "8155488695",
               "chatType": "private",
-              "role": "NAZORATCHI",
+              "role": "SUPERVISOR",
               "chatTitle": null
             }
           ]
@@ -236,7 +236,7 @@
               "userId": "708ef824-d907-41df-bd1b-7afed550ec8c",
               "chatId": "6368348552",
               "chatType": "private",
-              "role": "AGENT",
+              "role": "ACCOUNTANT",
               "chatTitle": null
             },
             {
@@ -267,6 +267,8 @@
           "lastName": null,
           "isBot": false,
           "languageCode": null,
+          "isActive": true,
+          "baseSalary": "0.00",
           "chatRoles": [
             {
               "id": "556e81e9-5637-41f6-8a3c-4430eed55e46",
@@ -275,8 +277,9 @@
               "userId": "e786cf35-9a7a-481e-858f-159222f8202a",
               "chatId": "7764932576",
               "chatType": "private",
-              "role": "NAZORATCHI",
-              "chatTitle": null
+              "role": "BANK_CLIENT",
+              "chatTitle": null,
+              "isActive": true
             }
           ]
         },
@@ -480,7 +483,7 @@
               "userId": "708ef824-d907-41df-bd1b-7afed550ec8c",
               "chatId": "6368348552",
               "chatType": "private",
-              "role": "AGENT",
+              "role": "ACCOUNTANT",
               "chatTitle": null,
               "isActive": true
             }
@@ -492,7 +495,33 @@
     {
       "id": "-1002576686248:7764932576",
       "data": {
-        "__scenes": {}
+        "__scenes": {},
+        "userEntity": {
+          "id": "e786cf35-9a7a-481e-858f-159222f8202a",
+          "createdAt": "2025-05-28T07:05:17.450Z",
+          "updatedAt": "2025-05-28T07:05:17.450Z",
+          "telegramId": "7764932576",
+          "username": null,
+          "firstName": "Team",
+          "lastName": null,
+          "isBot": false,
+          "languageCode": null,
+          "isActive": true,
+          "baseSalary": "0.00",
+          "chatRoles": [
+            {
+              "id": "556e81e9-5637-41f6-8a3c-4430eed55e46",
+              "createdAt": "2025-05-28T07:05:17.467Z",
+              "updatedAt": "2025-05-28T07:05:17.467Z",
+              "userId": "e786cf35-9a7a-481e-858f-159222f8202a",
+              "chatId": "7764932576",
+              "chatType": "private",
+              "role": "BANK_CLIENT",
+              "chatTitle": null,
+              "isActive": true
+            }
+          ]
+        }
       }
     },
     {

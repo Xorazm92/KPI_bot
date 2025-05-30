@@ -218,7 +218,7 @@ export class UserManagementService {
     const canAssignRoles =
       assigner.telegramId === this.adminTelegramId ||
       (assignerChatRole &&
-        [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.NAZORATCHI].includes(
+        [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.ACCOUNTANT].includes(
           assignerChatRole.role,
         ) &&
         assignerChatRole.chatId === chatId);
@@ -261,11 +261,11 @@ export class UserManagementService {
     // Check if assigner has permission to assign the requested role
     if (assignerChatRole && assigner.telegramId !== this.adminTelegramId) {
       const assignerRole = assignerChatRole.role;
-      const allowedRolesToAssign = [UserRole.AGENT, UserRole.BANK_CLIENT];
+      const allowedRolesToAssign = [UserRole.ACCOUNTANT, UserRole.BANK_CLIENT];
 
       if (
         assignerRole === UserRole.SUPERVISOR ||
-        assignerRole === UserRole.NAZORATCHI
+        assignerRole === UserRole.ACCOUNTANT
       ) {
         if (!allowedRolesToAssign.includes(role)) {
           this.logger.warn(

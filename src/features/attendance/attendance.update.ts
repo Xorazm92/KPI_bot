@@ -72,7 +72,7 @@ export class AttendanceUpdate {
     );
 
     // Check if user is an agent in this chat
-    if (userChatRole.role !== UserRole.AGENT) {
+    if (userChatRole.role !== UserRole.ACCOUNTANT) {
       this.logger.warn(
         `User ${user.telegramId} (Role: ${userChatRole.role}) in chat ${ctx.chat!.id} tried to use /attendance but is not an AGENT.`,
       );

@@ -26,9 +26,9 @@ export class AddNazoratchiRole1748566194365 implements MigrationInterface {
             CREATE TYPE "user_chat_roles_role_enum" AS ENUM(
                 'ADMIN',
                 'SUPERVISOR',
-                'NAZORATCHI',
-                'AGENT',
+                'ACCOUNTANT',
                 'BANK_CLIENT',
+                'CLIENT',
                 'BOT'
             );
         `);
@@ -70,11 +70,11 @@ export class AddNazoratchiRole1748566194365 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    // 1. First, update any rows that use the NAZORATCHI role to SUPERVISOR
+    // 1. First, update any rows that use the CLIENT role to SUPERVISOR
     await queryRunner.query(`
             UPDATE "user_chat_roles" 
-            SET "role" = 'SUPERVISOR' 
-            WHERE "role" = 'NAZORATCHI';
+            SET "role" = 'CLIENT' 
+            WHERE "role" = 'SUPERVISOR';
         `);
 
     // 2. Drop the default value constraint if it exists
@@ -94,10 +94,11 @@ export class AddNazoratchiRole1748566194365 implements MigrationInterface {
             CREATE TYPE "user_chat_roles_role_enum" AS ENUM(
                 'ADMIN',
                 'SUPERVISOR',
-                'AGENT',
+                'ACCOUNTANT',
                 'BANK_CLIENT',
+                'CLIENT',
                 'BOT',
-                'BUXGALTER'
+                
             );
         `);
 

@@ -18,8 +18,8 @@ export class MessageMonitoringService implements OnModuleInit {
 
   // Har bir rol uchun javob berish vaqti (sekundlarda)
   private readonly responseTimeThresholds = {
-    [UserRole.AGENT]: 10 * 60, // 10 daqiqa
-    [UserRole.BANK_CLIENT]: 5 * 60, // 5 daqiqa
+    [UserRole.ACCOUNTANT]: 10 * 60, // 10 daqiqa
+    [UserRole.BANK_CLIENT]: 10 * 60, // 10 daqiqa
     [UserRole.SUPERVISOR]: 10 * 60, // 10 daqiqa
     [UserRole.ADMIN]: 15 * 60, // 15 daqiqa
   };
@@ -103,7 +103,7 @@ export class MessageMonitoringService implements OnModuleInit {
       }
 
       // Foydalanuvchi roli bo'yicha vaqt chegarasini olish
-      const userRole = user.chatRoles?.[0]?.role || UserRole.AGENT;
+      const userRole = user.chatRoles?.[0]?.role || UserRole.ACCOUNTANT;
       const responseTimeThreshold =
         this.responseTimeThresholds[userRole] || 10 * 60; // standart 10 daqiqa
 

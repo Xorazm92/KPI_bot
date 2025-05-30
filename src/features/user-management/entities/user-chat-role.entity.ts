@@ -25,7 +25,7 @@ export class UserChatRoleEntity extends BaseEntity {
   @Column({ type: 'varchar', length: 32 })
   chatType: string; // 'private', 'group', 'supergroup', 'channel'
 
-  @Column({ type: 'enum', enum: UserRole, default: UserRole.CLIENT })
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.ACCOUNTANT })
   role: UserRole;
 
   @Column({ nullable: true })

@@ -134,7 +134,7 @@ export class KpiViewService {
 
     // Agentlar bo'yicha KPI
     const agentChatRoles = await this.userChatRoleRepository.find({
-      where: { role: UserRole.AGENT },
+      where: { role: UserRole.ACCOUNTANT },
       relations: ['user'], // Ensure user entity is loaded
     });
 

@@ -42,16 +42,16 @@ export class ResponseTimeService {
     //     timestamp: LessThan(timeoutThreshold),
     //     // For filtering by user role, you'd need a subquery or filter after fetching if using TypeORM query builder directly for many-to-many
     //     // Example post-fetch filter:
-    //     // user: { chatRoles: { role: UserRole.CLIENT } } // This specific syntax might not work directly in `find` options for complex relations
+    //     // user: { chatRoles: { role: UserRole.ACCOUNTANT } } // This specific syntax might not work directly in `find` options for complex relations
     //   },
     //   relations: ['user', 'user.chatRoles', 'user.chatRoles.role'], // Ensure relations are loaded
     // });
 
     // for (const question of pendingCLIENTQuestions) {
-    //   // if (question.user && question.user.chatRoles && question.user.chatRoles.some(chatRole => chatRole.role === UserRole.    BANK_CLIENT)) { // Check role correctly
-    //   //   this.logger.log(`CLIENT question ID ${question.id} from user ${question.user.telegramId} has timed out.`);
+    //   // if (question.user && question.user.chatRoles && question.user.chatRoles.some(chatRole => chatRole.role === UserRole.ACCOUNTANT)) { // Check role correctly
+    //   //   this.logger.log(`ACCOUNTANT question ID ${question.id} from user ${question.user.telegramId} has timed out.`);
     //   //   // question.questionStatus = QuestionStatus.TIMEOUT_CLIENT; // Temporarily commented out
-    //   //   question.questionStatusTemp = 'TIMEOUT_CLIENT'; // Using temp field
+    //   //   question.questionStatusTemp = 'TIMEOUT_ACCOUNTANT'; // Using temp field
     //   //   await this.messageLogRepository.save(question);
     //   // }
     // }
@@ -84,7 +84,7 @@ export class ResponseTimeService {
       !messageLog.user ||
       !messageLog.user.chatRoles ||
       !messageLog.user.chatRoles.some(
-        (chatRole) => chatRole.role === UserRole.CLIENT,
+        (chatRole) => chatRole.role === UserRole.ACCOUNTANT,
       ) ||
       !messageLog.isQuestion
     ) {

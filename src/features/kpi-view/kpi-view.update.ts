@@ -92,8 +92,7 @@ export class KpiViewUpdate {
 
     if (
       !userChatRole ||
-      (userChatRole.role !== UserRole.SUPERVISOR &&
-        userChatRole.role !== UserRole.NAZORATCHI)
+      (userChatRole.role !== UserRole.SUPERVISOR)
     ) {
       this.logger.warn(
         `User ${telegramUser.id} (DB ID: ${userEntity.id}, Chat Role: ${userChatRole?.role}) in chat ${chat.id} attempted to access /kpi_report without required role.`,
@@ -172,7 +171,7 @@ export class KpiViewUpdate {
 
     if (
       !userChatRole ||
-      ![UserRole.SUPERVISOR, UserRole.NAZORATCHI, UserRole.AGENT].includes(
+      ![UserRole.SUPERVISOR, UserRole.ACCOUNTANT].includes(
         userChatRole.role,
       )
     ) {

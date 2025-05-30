@@ -27,7 +27,7 @@ export class KpiCalculationService implements OnModuleInit {
   private readonly logger = new Logger(KpiCalculationService.name);
 
   // Default role if user has no roles assigned
-  private readonly defaultRole = UserRole.AGENT;
+  private readonly defaultRole = UserRole.ACCOUNTANT;
 
   // Weights for KPI calculation (can be configured via config service)
   private readonly kpiWeights: KpiWeights;
@@ -183,7 +183,6 @@ export class KpiCalculationService implements OnModuleInit {
         // Get user's role
         const userRole = await this.getUserRole(user.id);
         const responseTimeThreshold = [
-          UserRole.NAZORATCHI,
           UserRole.SUPERVISOR,
         ].includes(userRole)
           ? 600
