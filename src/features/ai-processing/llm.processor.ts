@@ -25,8 +25,8 @@ export class LlmProcessor {
     );
     // .env faylida OLLAMA_QWEN_MODEL ni sozlash tavsiya etiladi
     this.ollamaModel = this.configService.get<string>(
-      'OLLAMA_QWEN_MODEL',
-      'qwen:latest',
+      'OLLAMA_MODEL',
+      'qwen-ozbek',
     );
   }
 
