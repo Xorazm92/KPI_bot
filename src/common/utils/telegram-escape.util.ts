@@ -4,10 +4,17 @@
  *
  * Usage: Use this before sending any dynamic content in MarkdownV2 parse_mode.
  */
+// export function escapeMarkdownV2(text: string): string {
+//   if (!text) return '';
+//   return text.replace(
+//     /[\\_\*\[\]\(\)~`>#+\-=|{}\.!]/g,
+//     (match) => '\\' + match,
+//   );
+
+
 export function escapeMarkdownV2(text: string): string {
   if (!text) return '';
-  return text.replace(
-    /[\\_\*\[\]\(\)~`>#+\-=|{}\.!]/g,
-    (match) => '\\' + match,
-  );
+  // Maxsus belgilarni escape qilamiz
+  return text.replace(/([_\*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1');
+  
 }

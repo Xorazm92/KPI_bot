@@ -7,6 +7,8 @@ import { firstValueFrom } from 'rxjs';
 import { MessageLoggingService } from '../message-logging/message-logging.service';
 import { LlmJobData } from './interfaces/llm-job-data.interface';
 import { LlmAnalysisStatusEnum } from './enums/llm-analysis-status.enum';
+import { TelegramBaseService } from '../telegram-base/telegram-base.service';
+import { escapeMarkdownV2 } from '../../common/utils/telegram-escape.util';
 
 @Processor('llm-analysis-queue')
 export class LlmProcessor {
@@ -18,6 +20,7 @@ export class LlmProcessor {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     private readonly messageLoggingService: MessageLoggingService,
+    private readonly telegramBaseService: TelegramBaseService,
   ) {
     this.ollamaBaseUrl = this.configService.get<string>(
       'OLLAMA_BASE_URL',
@@ -68,7 +71,7 @@ export class LlmProcessor {
           `[LLM Job ${job.id}] Received response from Ollama for messageLogId: ${messageLogId}`,
         );
         // TODO: Javobni strukturalash logikasi kerak bo'lishi mumkin
-        await this.messageLoggingService.updateMessageLogWithLlmResult(
+        const updatedLog = await this.messageLoggingService.updateMessageLogWithLlmResult(
           messageLogId,
           promptType,
           prompt, // Yuborilgan to'liq prompt

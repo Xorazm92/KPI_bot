@@ -130,17 +130,9 @@
           "lastName": "Asosiy",
           "isBot": false,
           "languageCode": null,
+          "isActive": true,
+          "baseSalary": "0.00",
           "chatRoles": [
-            {
-              "id": "38071d08-6be9-46c7-bcd2-93d09f5f8b84",
-              "createdAt": "2025-05-24T16:57:44.923Z",
-              "updatedAt": "2025-05-24T16:57:44.923Z",
-              "userId": "5f4ef5d1-e922-4a2b-b3aa-0c01655f6545",
-              "chatId": "-1002289630876",
-              "chatType": "supergroup",
-              "role": "BANK_CLIENT",
-              "chatTitle": null
-            },
             {
               "id": "184a2b3c-39b6-4bcb-86ae-8bbf0b2ca63a",
               "createdAt": "2025-05-25T05:34:46.200Z",
@@ -149,7 +141,19 @@
               "chatId": "8155488695",
               "chatType": "private",
               "role": "SUPERVISOR",
-              "chatTitle": null
+              "chatTitle": null,
+              "isActive": true
+            },
+            {
+              "id": "b499e0aa-45ca-453e-9e4a-c5cd226552d8",
+              "createdAt": "2025-05-31T06:51:54.119Z",
+              "updatedAt": "2025-05-31T06:51:54.119Z",
+              "userId": "5f4ef5d1-e922-4a2b-b3aa-0c01655f6545",
+              "chatId": "-1002576686248",
+              "chatType": "supergroup",
+              "role": "CLIENT",
+              "chatTitle": null,
+              "isActive": true
             }
           ]
         },
@@ -266,6 +270,17 @@
               "chatId": "7764932576",
               "chatType": "private",
               "role": "BANK_CLIENT",
+              "chatTitle": null,
+              "isActive": true
+            },
+            {
+              "id": "0fc811cd-c5d8-4100-8040-c71294d7c15a",
+              "createdAt": "2025-05-31T06:59:31.738Z",
+              "updatedAt": "2025-05-31T06:59:31.738Z",
+              "userId": "e786cf35-9a7a-481e-858f-159222f8202a",
+              "chatId": "-1002576686248",
+              "chatType": "supergroup",
+              "role": "CLIENT",
               "chatTitle": null,
               "isActive": true
             }

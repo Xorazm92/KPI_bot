@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not, IsNull } from 'typeorm';
 import {
   Message as TelegrafMessage,
   Chat as TelegrafChat,
@@ -245,6 +245,35 @@ export class MessageLoggingService {
     } catch (error) {
       this.logger.error(
         `Error updating MessageLog ID ${messageLogId} with LLM result: ${error.message}`,
+        error.stack,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Foydalanuvchi va chat uchun eng so'nggi LLM natijasi mavjud bo'lgan logni qaytaradi.
+   * @param telegramUserId
+   * @param chatId
+   */
+  async findLastLlmResultForUserInChat(
+    telegramUserId: number,
+    chatId: number,
+  ): Promise<MessageLogEntity | null> {
+    try {
+      const lastLog = await this.messageLogRepository.findOne({
+        where: {
+          chatId: chatId,
+          user: { telegramId: telegramUserId },
+          llmAnalysisResponse: Not(IsNull()),
+        },
+        relations: ['user'],
+        order: { timestamp: 'DESC' },
+      });
+      return lastLog || null;
+    } catch (error) {
+      this.logger.error(
+        `Error fetching last LLM result for user ${telegramUserId} in chat ${chatId}: ${error.message}`,
         error.stack,
       );
       return null;
