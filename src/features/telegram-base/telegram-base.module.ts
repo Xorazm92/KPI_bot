@@ -89,6 +89,12 @@ import { QuestionMonitoringModule } from '../question-monitoring/question-monito
           ],
           options: {
             handlerTimeout: 30000,
+            launchOptions: {
+              polling: {
+                timeout: 30,
+                dropPendingUpdates: true,
+              },
+            },
             telegram: {
               agent,
               apiRoot: 'https://api.telegram.org',

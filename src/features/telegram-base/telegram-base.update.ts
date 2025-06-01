@@ -152,22 +152,15 @@ export class TelegramBaseUpdate {
     @Chat() chat: TelegrafChat,
   ) {
     const tgUser = ctx.from;
-    // const chat = ctx.chat; // Yuqorida @Chat() orqali olingan
-
     if (!tgUser || !chat) {
       this.logger.warn('User or chat is undefined in onStart');
-      await ctx.reply(
-        'Xatolik: Foydalanuvchi yoki chat maʼlumotlari topilmadi.',
-      );
+      await ctx.reply('Xatolik: Foydalanuvchi yoki chat maʼlumotlari topilmadi.');
       return;
     }
-
     this.logger.log(
-      `User ${tgUser.id} (${tgUser.username}) started bot in chat ${chat.id} (${chat.type})`,
+      `START HANDLER ISHLADI! User ${tgUser.id} (${tgUser.username}) started bot in chat ${chat.id} (${chat.type})`,
     );
-
     try {
-      // Log the incoming /start command
       if (ctx.message) {
         const telegramMessage = ctx.message as TelegrafMessage;
         const { userChatRole, isNewUser, isNewChatRole } =

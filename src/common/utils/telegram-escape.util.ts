@@ -6,15 +6,8 @@
  */
 // export function escapeMarkdownV2(text: string): string {
 //   if (!text) return '';
-//   return text.replace(
-//     /[\\_\*\[\]\(\)~`>#+\-=|{}\.!]/g,
-//     (match) => '\\' + match,
-//   );
-
-
 export function escapeMarkdownV2(text: string): string {
   if (!text) return '';
   // Maxsus belgilarni escape qilamiz
   return text.replace(/([_\*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1');
-  
 }

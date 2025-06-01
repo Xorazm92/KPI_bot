@@ -107,12 +107,17 @@ export class UserManagementService {
     const user = passedUserEntity;
     const isNewUser = false;
 
-    let userChatRole = await this.userChatRoleRepository.findOne({
-      where: { userId: user.id, chatId },
-      relations: ['user'],
-    });
-
+    let userChatRole: UserChatRoleEntity | undefined;
     let isNewChatRole = false;
+    try {
+      userChatRole = (await this.userChatRoleRepository.findOne({
+        where: { userId: user.id, chatId },
+        relations: ['user'],
+      })) || undefined;
+    } catch (err) {
+      this.logger.error(`Error fetching userChatRole for user ${user.id} in chat ${chatId}: ${err.message}`);
+      throw err;
+    }
     if (!userChatRole) {
       this.logger.log(
         `User ${user.id} role in chat ${chatId} not found, creating new role.`,
@@ -121,35 +126,49 @@ export class UserManagementService {
         user.telegramId === this.adminTelegramId
           ? UserRole.ADMIN
           : defaultRoleIfNotAdmin;
-      userChatRole = this.userChatRoleRepository.create({
-        userId: user.id,
-        chatId,
-        role,
-        chatType,
-        user: user,
-      });
-      await this.userChatRoleRepository.save(userChatRole);
-      isNewChatRole = true;
-      this.logger.log(
-        `Role ${role} created for user ${user.id} in chat ${chatId}.`,
-      );
+      try {
+        userChatRole = this.userChatRoleRepository.create({
+          userId: user.id,
+          chatId,
+          role,
+          chatType,
+          user: user,
+        });
+        await this.userChatRoleRepository.save(userChatRole);
+        isNewChatRole = true;
+        this.logger.log(
+          `Role ${role} created for user ${user.id} in chat ${chatId}.`,
+        );
+      } catch (err) {
+        this.logger.error(`Error creating/saving userChatRole for user ${user.id} in chat ${chatId}: ${err.message}`);
+        throw err;
+      }
     } else {
       this.logger.debug(
         `User ${user.id} already has role ${userChatRole.role} in chat ${chatId}.`,
       );
       if (userChatRole.chatType !== chatType) {
         userChatRole.chatType = chatType;
-        await this.userChatRoleRepository.save(userChatRole);
-        this.logger.log(
-          `Chat type updated for user ${user.id} in chat ${chatId} to ${chatType}.`,
-        );
+        try {
+          await this.userChatRoleRepository.save(userChatRole);
+          this.logger.log(
+            `Chat type updated for user ${user.id} in chat ${chatId} to ${chatType}.`,
+          );
+        } catch (err) {
+          this.logger.error(`Error updating chatType for userChatRole ${userChatRole.id}: ${err.message}`);
+        }
       }
       if (!userChatRole.user) {
+        this.logger.warn(`userChatRole.user is undefined for userChatRole ${userChatRole.id}, fixing...`);
         userChatRole.user = user;
-        await this.userChatRoleRepository.save(userChatRole);
+        try {
+          await this.userChatRoleRepository.save(userChatRole);
+          this.logger.log(`userChatRole.user fixed for userChatRole ${userChatRole.id}`);
+        } catch (err) {
+          this.logger.error(`Error fixing userChatRole.user for userChatRole ${userChatRole.id}: ${err.message}`);
+        }
       }
     }
-
     return { user, userChatRole, isNewUser, isNewChatRole };
   }
 
