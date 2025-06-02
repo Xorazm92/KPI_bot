@@ -28,10 +28,13 @@ export class ResponseTimeService {
     );
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  // O‘zbekiston vaqti bilan har kuni soat 09:00 da ishlaydi (UTC 04:00)
+  @Cron('0 4 * * *')
   async handleTimedOutCLIENTQuestions() {
     this.logger.debug('Running cron job: handleTimedOutCLIENTQuestions');
-    // const timeoutThreshold = new Date(Date.now() - this.CLIENTQuestionTimeoutMinutes * 60 * 1000);
+    // O‘zbekiston vaqti (UTC+5) bilan timeoutThreshold hisoblash
+    const nowUzb = new Date(Date.now() + 5 * 60 * 60 * 1000);
+    const timeoutThreshold = new Date(nowUzb.getTime() - this.CLIENTQuestionTimeoutMinutes * 60 * 1000);
 
     // const pendingCLIENTQuestions = await this.messageLogRepository.find({
     //   where: {
@@ -57,10 +60,13 @@ export class ResponseTimeService {
     // }
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  // O‘zbekiston vaqti bilan har kuni soat 17:00 da ishlaydi (UTC 12:00)
+  @Cron('0 12 * * *')
   async handleTimedOutAgentResponses() {
     this.logger.debug('Running cron job: handleTimedOutAgentResponses');
-    // const timeoutThreshold = new Date(Date.now() - this.agentResponseTimeoutMinutes * 60 * 1000);
+    // O‘zbekiston vaqti (UTC+5) bilan timeoutThreshold hisoblash
+    const nowUzb = new Date(Date.now() + 5 * 60 * 60 * 1000);
+    const timeoutThreshold = new Date(nowUzb.getTime() - this.agentResponseTimeoutMinutes * 60 * 1000);
     // const pendingAgentQuestions = await this.messageLogRepository.find({
     //   where: {
     //     isQuestion: true,
